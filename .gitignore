@@ -1,0 +1,7 @@
+.vscode
+data
+plots
+.git
+__pycache__
+venv
+rat_data.db
