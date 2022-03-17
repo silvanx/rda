@@ -3,7 +3,8 @@ from ratdata import data_manager as dm
 import numpy as np
 
 
-def plot_beta_one_rat_one_condition(rat_label: str, cond: str) -> None:
+def plot_beta_one_rat_one_condition(rat_label: str, cond: str,
+                                    img_filename: str = None) -> None:
     example_rat = dm.Rat().get(label=rat_label)
     stim_array = ['continuous', 'on-off', 'random']
 
@@ -19,11 +20,16 @@ def plot_beta_one_rat_one_condition(rat_label: str, cond: str) -> None:
     ax = plt.gca()
     ax.set_xticklabels(stim_array)
     plt.title('Absolute beta power %s %s' % (rat_label, cond))
-    plt.show()
+    if img_filename:
+        plt.savefig(img_filename)
+        plt.close()
+    else:
+        plt.show()
 
 
 def plot_relative_beta_one_rat_one_condition(rat_label: str,
-                                             cond: str) -> None:
+                                             cond: str,
+                                             img_filename: str = None) -> None:
     example_rat = dm.Rat().get(label=rat_label)
     stim_array = ['continuous', 'on-off', 'random']
 
@@ -40,4 +46,8 @@ def plot_relative_beta_one_rat_one_condition(rat_label: str,
     ax = plt.gca()
     ax.set_xticklabels(stim_array)
     plt.title('Relative beta power %s %s' % (rat_label, cond))
-    plt.show()
+    if img_filename:
+        plt.savefig(img_filename)
+        plt.close()
+    else:
+        plt.show()
