@@ -1,7 +1,7 @@
 import scipy.signal as signal
 import scipy.integrate as integrate
 import numpy as np
-from ratdata import ingest
+from ratdata import data_manager as dm, ingest
 
 
 def compute_power_in_frequency_band(data: np.ndarray, low: int, high: int,
@@ -37,6 +37,28 @@ def compute_change_in_power(data1: np.ndarray, data2: np.ndarray, low: int,
     power1 = compute_power_in_frequency_band(data1, low, high, fs)
     power2 = compute_power_in_frequency_band(data2, low, high, fs)
     return (power2 / power1 - 1) * 100
+
+
+def get_change_in_beta_power_from_rec(rec: dm.RecordingFile) -> float:
+    baseline = rec.baseline.get().baseline
+    recording_power = dm.RecordingPower.get(recording=rec)
+    baseline_power = dm.RecordingPower.get(recording=baseline)
+    power_change = (recording_power.beta_power /
+                    baseline_power.beta_power - 1) * 100
+    return power_change
+
+
+def get_change_in_rel_beta_power_from_rec(rec: dm.RecordingFile) -> float:
+    baseline = rec.baseline.get().baseline
+    recording_power = dm.RecordingPower.get(recording=rec)
+    baseline_power = dm.RecordingPower.get(recording=baseline)
+    recording_rel_power = (recording_power.beta_power /
+                           recording_power.total_power)
+    baseline_rel_power = (baseline_power.beta_power /
+                          baseline_power.total_power)
+    power_change = (recording_rel_power /
+                    baseline_rel_power - 1) * 100
+    return power_change
 
 
 def compute_teed_continuous_stim(amplitude: int, pulse_width: int,
