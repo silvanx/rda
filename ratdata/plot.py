@@ -6,7 +6,7 @@ import numpy as np
 def plot_beta_one_rat_one_condition(rat_label: str, cond: str,
                                     img_filename: str = None) -> None:
     rat = dm.Rat().get(label=rat_label)
-    stim_array = ['continuous', 'on-off', 'random']
+    stim_array = ['nostim', 'continuous', 'on-off', 'random']
     boxplot_data = []
     for stim in stim_array:
         rec_array = dm.select_recordings_for_rat(rat, cond, stim)
@@ -20,7 +20,7 @@ def plot_relative_beta_one_rat_one_condition(rat_label: str,
                                              cond: str,
                                              img_filename: str = None) -> None:
     rat = dm.Rat().get(label=rat_label)
-    stim_array = ['continuous', 'on-off', 'random']
+    stim_array = ['nostim', 'continuous', 'on-off', 'random']
     boxplot_data = []
     for stim in stim_array:
         rec_array = dm.select_recordings_for_rat(rat, cond, stim)
@@ -35,7 +35,7 @@ def plot_change_in_absolute_beta(rat_label: str,
                                  cond: str,
                                  img_filename: str = None) -> None:
     rat = dm.Rat().get(label=rat_label)
-    stim_array = ['continuous', 'on-off', 'random']
+    stim_array = ['nostim', 'continuous', 'on-off', 'random']
     boxplot_data = []
     plot_title = 'Change in absolute beta power %s %s' % (rat_label, cond)
     for stim in stim_array:
@@ -50,7 +50,7 @@ def plot_change_in_relative_beta(rat_label: str,
                                  cond: str,
                                  img_filename: str = None) -> None:
     rat = dm.Rat().get(label=rat_label)
-    stim_array = ['continuous', 'on-off', 'random']
+    stim_array = ['nostim', 'continuous', 'on-off', 'random']
     boxplot_data = []
     plot_title = 'Change in relative beta power %s %s' % (rat_label, cond)
     for stim in stim_array:
