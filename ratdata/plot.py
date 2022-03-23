@@ -76,3 +76,29 @@ def boxplot_all_stim(boxplot_data: list[list[float]], x_labels: list[str],
         plt.close()
     else:
         plt.show()
+
+
+def plot_baseline_across_time(rat_label: str,
+                              img_filename: str = None) -> None:
+    rat = dm.Rat.get(label=rat_label)
+    baseline_recordings = dm.RecordingFile.select()\
+        .where((dm.RecordingFile.rat == rat) &
+               (dm.RecordingFile.condition == 'baseline'))\
+        .order_by(dm.RecordingFile.recording_date)
+    plot_power = []
+    plot_date = []
+    for rec in baseline_recordings:
+        power_data = dm.RecordingPower.get(recording=rec)
+        relative_power = power_data.beta_power / power_data.total_power
+        plot_power.append(relative_power)
+        plot_date.append(rec.recording_date)
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(plot_date, plot_power, '.-')
+    plt.title('Baseline relative beta for %s' % rat_label)
+
+    if img_filename:
+        plt.savefig(img_filename, facecolor='white', bbox_inches='tight')
+        plt.close()
+    else:
+        plt.show()
