@@ -164,3 +164,18 @@ def select_recordings_for_rat(rat: Rat, condition: str,
                                   (RecordingFile.condition == condition) &
                                   (StimSettings.stim_type == stim_type))
     return query
+
+
+def get_all_recording_dates() -> list[datetime.date]:
+    query = RecordingFile.select().group_by(RecordingFile.recording_date)
+    dates = [r.recording_date for r in query]
+    return dates
+
+
+def get_all_recording_dates_nostim() -> list[datetime.date]:
+    query = RecordingFile.select()\
+        .join(StimSettings)\
+        .where(StimSettings.stim_type == 'nostim')\
+        .group_by(RecordingFile.recording_date)
+    dates = [r.recording_date for r in query]
+    return dates

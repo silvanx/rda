@@ -1,3 +1,4 @@
+import datetime
 import matplotlib.pyplot as plt
 from ratdata import data_manager as dm, process
 import numpy as np
@@ -94,6 +95,40 @@ def plot_baseline_across_time(rat_label: str,
     plt.title('Baseline relative beta for %s' % rat_label)
 
     save_or_show(fig, img_filename)
+
+
+def plot_relative_beta_one_day(day: datetime.date,
+                               filename_prefix: str = None) -> None:
+    rats = dm.RecordingFile.select().join(dm.Rat)\
+        .where(dm.RecordingFile.recording_date == day)\
+        .group_by(dm.RecordingFile.rat)
+    for record in rats:
+        rat = record.rat
+        plot_relative_beta_one_day_one_rat(day, rat, filename_prefix)
+
+
+def plot_relative_beta_one_day_one_rat(day: datetime.date,
+                                       rat: dm.Rat,
+                                       filename_prefix: str = None) -> None:
+
+    recordings = dm.RecordingFile.select()\
+        .where((dm.RecordingFile.recording_date == day) &
+               (dm.RecordingFile.rat == rat))\
+        .order_by(dm.RecordingFile.filename)
+    data_list = [(r.condition,
+                  dm.RecordingPower.get(recording=r).beta_power)
+                 for r in recordings]
+    label, rbeta = list(zip(*data_list))
+    fig = plt.figure(figsize=(12, 6))
+    plt.bar(label, rbeta)
+    plt.title('Relative beta power for %s on %s' %
+              (rat.label, day.strftime("%d %b %Y")))
+    if filename_prefix is not None:
+        filename = '%s_%s_%s.png' % (filename_prefix, rat.label,
+                                     day.strftime("%Y%m%d"))
+    else:
+        filename = None
+    save_or_show(fig, filename)
 
 
 def save_or_show(fig: plt.Figure, filename: str = None) -> None:
