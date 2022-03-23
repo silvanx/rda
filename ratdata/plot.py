@@ -63,7 +63,7 @@ def plot_change_in_relative_beta(rat_label: str,
 
 def boxplot_all_stim(boxplot_data: list[list[float]], x_labels: list[str],
                      title: str = '', img_filename: str = None) -> None:
-    plt.figure(figsize=(12, 6))
+    fig = plt.figure(figsize=(12, 6))
     plt.boxplot(boxplot_data)
     for i, data_points in enumerate(boxplot_data):
         plt.scatter(np.ones(len(data_points)) * (i + 1), data_points)
@@ -71,11 +71,7 @@ def boxplot_all_stim(boxplot_data: list[list[float]], x_labels: list[str],
     ax = plt.gca()
     ax.set_xticklabels(x_labels)
 
-    if img_filename:
-        plt.savefig(img_filename, facecolor='white', bbox_inches='tight')
-        plt.close()
-    else:
-        plt.show()
+    save_or_show(fig, img_filename)
 
 
 def plot_baseline_across_time(rat_label: str,
@@ -93,12 +89,17 @@ def plot_baseline_across_time(rat_label: str,
         plot_power.append(relative_power)
         plot_date.append(rec.recording_date)
 
-    plt.figure(figsize=(12, 6))
+    fig = plt.figure(figsize=(12, 6))
     plt.plot(plot_date, plot_power, '.-')
     plt.title('Baseline relative beta for %s' % rat_label)
 
-    if img_filename:
-        plt.savefig(img_filename, facecolor='white', bbox_inches='tight')
-        plt.close()
+    save_or_show(fig, img_filename)
+
+
+def save_or_show(fig: plt.Figure, filename: str = None) -> None:
+    plt.figure(fig)
+    if filename is not None:
+        plt.savefig(filename, facecolor='white', bbox_inches='tight')
+        plt.close(fig)
     else:
         plt.show()
