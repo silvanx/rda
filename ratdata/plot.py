@@ -138,3 +138,35 @@ def save_or_show(fig: plt.Figure, filename: str = None) -> None:
         plt.close(fig)
     else:
         plt.show()
+
+
+def plot_biomarker_steps(data: np.ndarray, fs: int, low_fs: int = 500,
+                         lowcut: int = 13, hicut: int = 30,
+                         p_seg_len: int = 50, plot_title: str = None,
+                         filename: str = None) -> None:
+    maxtime = len(data) / fs
+    downsampled = process.downsample_signal(data, fs, low_fs)
+    beta = process.bandpass_filter(downsampled, low_fs, lowcut, hicut)
+    beta_power = process.rolling_power_signal(beta, p_seg_len)
+    total_power = process.rolling_power_signal(downsampled, p_seg_len)
+    biomarker = beta_power / total_power
+    p_cut = int(p_seg_len / 2)
+    ttd = np.linspace(0, maxtime, len(downsampled))
+
+    fig, ax = plt.subplots(4, 1, sharex=True, figsize=(14, 10))
+    ax[0].plot(ttd, downsampled)
+    ax[0].set_title('Raw data')
+    ax[1].plot(ttd, beta)
+    ax[1].set_title('Beta (13-30 Hz) component')
+    ax[2].plot(ttd[p_cut:-p_cut], beta_power[p_cut:-p_cut])
+    ax[2].plot(ttd[p_cut:-p_cut], total_power[p_cut:-p_cut])
+    ax[2].legend(['beta', 'total'])
+    ax[2].set_title('Beta and total power (N = %d samples)' % p_seg_len)
+    ax[3].plot(ttd[p_cut:-p_cut], biomarker[p_cut:-p_cut])
+    ax[3].set_title('Biomarker (relative beta)')
+    if plot_title is not None:
+        plt.suptitle(plot_title)
+
+    ax[-1].set_xlabel('Time [s]')
+
+    save_or_show(fig, filename)

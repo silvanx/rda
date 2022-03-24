@@ -7,6 +7,7 @@ import dateutil.parser as dparser
 from peewee import SqliteDatabase, AutoField, DateField, TextField, \
                    ForeignKeyField, Model, DatabaseProxy, IntegerField, \
                    FloatField, SelectQuery
+import numpy as np
 
 
 database_proxy = DatabaseProxy()
@@ -179,3 +180,10 @@ def get_all_recording_dates_nostim() -> list[datetime.date]:
         .group_by(RecordingFile.recording_date)
     dates = [r.recording_date for r in query]
     return dates
+
+
+def get_electrode_data_from_recording(rec: RecordingFile) -> tuple[np.ndarray,
+                                                                   float]:
+    file_fullpath = str(pathlib.Path(rec.dirname) / rec.filename)
+    recording_data = ingest.read_mce_matlab_file(file_fullpath)
+    return (recording_data.electrode_data, recording_data.dt)

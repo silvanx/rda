@@ -103,14 +103,6 @@ def read_mce_matlab_file(filename: str) -> Recording:
     return result
 
 
-def read_mce_hdf5_matlab_file(filename: str) -> Recording:
-    raise NotImplementedError
-
-
-def read_gui_csv_file(filename: str) -> np.ndarray:
-    raise NotImplementedError
-
-
 def read_gui_bin_file(filename: str, channels: int = 26) -> np.ndarray:
     """Read data from GUI binary file
 

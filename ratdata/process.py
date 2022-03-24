@@ -42,6 +42,12 @@ def compute_relative_power(data: np.ndarray, low: int, high: int,
     return relative_power
 
 
+def rolling_power_signal(data: np.ndarray, segment_len: int) -> np.ndarray:
+    d2 = data ** 2
+    power = np.convolve(d2, np.ones(segment_len) / segment_len, mode='same')
+    return power
+
+
 def compute_change_in_power(data1: np.ndarray, data2: np.ndarray, low: int,
                             high: int, fs: int) -> float:
     power1 = compute_power_in_frequency_band(data1, low, high, fs)

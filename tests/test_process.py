@@ -33,6 +33,12 @@ class TestDataProcessing(unittest.TestCase):
         target = np.zeros(filtered.shape)
         np.testing.assert_almost_equal(filtered, target, decimal=1)
         
+    def test_rolling_power_constant_signal(self):
+        constant_signal = np.ones(20000)
+        segment_length = 100
+        power = process.rolling_power_signal(constant_signal, segment_length)
+        cut = int(segment_length / 2)
+        np.testing.assert_almost_equal(constant_signal[cut:-cut], power[cut:-cut], decimal=2)
 
     def test_band_power_empty_band(self):
         power = process.compute_power_in_frequency_band(self.sine_20d, 80, 100, self.target_fs)
