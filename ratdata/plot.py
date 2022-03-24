@@ -151,10 +151,11 @@ def plot_biomarker_steps(data: np.ndarray, fs: int, low_fs: int = 500,
     total_power = process.rolling_power_signal(downsampled, p_seg_len)
     biomarker = beta_power / total_power
     p_cut = int(p_seg_len / 2)
+    tt = np.linspace(0, maxtime, len(data))
     ttd = np.linspace(0, maxtime, len(downsampled))
 
     fig, ax = plt.subplots(4, 1, sharex=True, figsize=(14, 10))
-    ax[0].plot(ttd, downsampled)
+    ax[0].plot(tt, data)
     ax[0].set_title('Raw data')
     ax[1].plot(ttd, beta)
     ax[1].set_title('Beta (13-30 Hz) component')
