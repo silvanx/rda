@@ -20,6 +20,16 @@ def downsample_signal(data: np.ndarray, fs: int, target_fs: int) -> np.ndarray:
     return decimated
 
 
+def bandpass_filter(data: np.ndarray, fs: int, lowcut: int,
+                    hicut: int, numtaps: int = 201) -> np.ndarray:
+    nyq = fs / 2
+    lo = lowcut / nyq
+    hi = hicut / nyq
+    taps = signal.firwin(numtaps, (lo, hi), pass_zero='bandpass')
+    filtered = signal.lfilter(taps, 1.0, data)
+    return filtered
+
+
 def compute_relative_power(data: np.ndarray, low: int, high: int,
                            fs: int, total_low: int = 0,
                            total_high: int = None) -> float:

@@ -23,6 +23,17 @@ class TestDataProcessing(unittest.TestCase):
         decimated = process.downsample_signal(self.sine_20, self.fs, self.target_fs)
         np.testing.assert_almost_equal(decimated, self.sine_20d, decimal=1)
 
+    def test_bandpass_filter_pass(self):
+        numtaps = 201
+        filtered = process.bandpass_filter(self.sine_20d, self.target_fs, 1, 50, numtaps)
+        np.testing.assert_almost_equal(filtered[numtaps:], self.sine_20d[numtaps:], decimal=1)
+
+    def test_bandpass_filter_reject(self):
+        filtered = process.bandpass_filter(self.sine_20d, self.target_fs, 50, 100)
+        target = np.zeros(filtered.shape)
+        np.testing.assert_almost_equal(filtered, target, decimal=1)
+        
+
     def test_band_power_empty_band(self):
         power = process.compute_power_in_frequency_band(self.sine_20d, 80, 100, self.target_fs)
         self.assertAlmostEqual(power, 0.0)
