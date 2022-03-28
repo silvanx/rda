@@ -187,3 +187,10 @@ def get_electrode_data_from_recording(rec: RecordingFile) -> tuple[np.ndarray,
     file_fullpath = str(pathlib.Path(rec.dirname) / rec.filename)
     recording_data = ingest.read_mce_matlab_file(file_fullpath)
     return (recording_data.electrode_data, recording_data.dt)
+
+
+def get_rat_labels() -> list[str]:
+    query = Rat.select().order_by(Rat.label)
+    rat_list = [r.label for r in query]
+    rat_list.insert(0, None)
+    return rat_list
