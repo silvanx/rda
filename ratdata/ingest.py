@@ -17,8 +17,8 @@ class Recording:
 
 
 def extract_info_from_filename(filename: str) -> tuple[str, str, str]:
-    date_regex = '([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}) '
-    rat_regex = ' (rat[0-9]+) '
+    date_regex = r'([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}) '
+    rat_regex = r' (rat[0-9]+) '
 
     try:
         time_of_recording = re.findall(date_regex, filename)[0]
@@ -57,6 +57,7 @@ def extract_stim_type_from_filename(filename: str) -> str:
 
 
 def read_mce_matlab_file(filename: str) -> Recording:
+    filename = str(filename)
     file = h5py.File(filename)
     prefix = '_'.join(list(file.keys())[0].split('_')[:-1])
     num_channels = len(list(file.keys()))

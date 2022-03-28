@@ -261,8 +261,8 @@ class MainWindow(QtWidgets.QMainWindow):
         fs = 20000
         if file.stem in self.time_slices:
             elem = self.time_slices[file.stem]
-            start_sample = elem['start'] * fs
-            end_sample = (elem['start'] + elem['length']) * fs
+            start_sample = int(elem['start'] * fs)
+            end_sample = int((elem['start'] + elem['length']) * fs)
             x = x[start_sample:end_sample]
         f_signal, spectrum_signal = signal.welch(x, fs, nperseg=fs)
         self.psd_plot.axes.cla()
