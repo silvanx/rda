@@ -97,6 +97,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # File list on the right
         self.file_list_widget = QtWidgets.QListWidget()
+        self.file_list_widget.setIconSize(QtCore.QSize(12, 12))
         self.directory_label = QtWidgets.QLabel(self.file_dir)
         change_directory_button = QtWidgets.QPushButton('Change directory')
         self.refresh_file_list_display()
@@ -332,8 +333,14 @@ class MainWindow(QtWidgets.QMainWindow):
         start_raw = self.start_slice_input.text()
         length_raw = self.length_slice_input.text()
 
-        start = None if start_raw == '' else float(start_raw)
-        length = None if length_raw == '' else float(length_raw)
+        try:
+            start = float(start_raw)
+        except ValueError:
+            start = None
+        try:
+            length = float(length_raw)
+        except ValueError:
+            length = None
         max_x = np.ceil(max(self.time_plot.axes.lines[0].get_xdata()))
 
         if start is not None:
@@ -344,7 +351,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.file_list_widget.selectedItems()[0].setIcon(
                 QtGui.QIcon(r"scissors.png"))
         else:
-            self.time_slices.pop(filename.stem)
+            if filename.stem in self.time_slices:
+                self.time_slices.pop(filename.stem)
             self.file_list_widget.selectedItems()[0].setIcon(QtGui.QIcon(None))
         with open(self.time_slices_file, mode='wb') as f:
             pickle.dump(self.time_slices, f)
