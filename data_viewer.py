@@ -160,9 +160,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refresh_file_list_display()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
-        if event.key() == QtCore.Qt.Key_Right:
+        if event.key() == QtCore.Qt.Key_PageDown:
             self.plot_next_file()
-        if event.key() == QtCore.Qt.Key_Left:
+        if event.key() == QtCore.Qt.Key_PageUp:
             self.plot_previous_file()
 
     def refresh_file_list_display(self):
