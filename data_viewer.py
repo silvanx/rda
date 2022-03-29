@@ -77,6 +77,10 @@ class MainWindow(QtWidgets.QMainWindow):
         slice_selection.addWidget(self.length_slice_input)
         slice_selection.addWidget(update_slice_button)
         update_slice_button.clicked.connect(self.update_selected_slice)
+        self.start_slice_input.returnPressed.connect(
+            self.update_selected_slice)
+        self.length_slice_input.returnPressed.connect(
+            self.update_selected_slice)
 
         # Time plot controls
         time_plot_controls = QtWidgets.QHBoxLayout()
