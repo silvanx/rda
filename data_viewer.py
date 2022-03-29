@@ -255,9 +255,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.start_slice_input.insert(str(elem['start']))
             self.length_slice_input.clear()
             self.length_slice_input.insert(str(elem['length']))
+            highlight_stop = elem['start'] + elem['length']
             self.time_plot.axes.fill_betweenx([min(x), max(x)],
                                               elem['start'],
-                                              elem['start'] + elem['length'],
+                                              highlight_stop,
                                               color='green', alpha=0.2)
         self.time_plot.fig.tight_layout()
         self.time_plot.draw()
@@ -328,11 +329,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_selected_slice(self):
         filename = Path(self.file_list[self.current_file])
-        start = self.start_slice_input.text()
-        length = self.length_slice_input.text()
-        if start and length:
-            self.time_slices[filename.stem] = {'start': float(start),
-                                               'length': float(length)}
+        start_raw = self.start_slice_input.text()
+        length_raw = self.length_slice_input.text()
+
+        start = None if start_raw == '' else float(start_raw)
+        length = None if length_raw == '' else float(length_raw)
+        max_x = np.ceil(max(self.time_plot.axes.lines[0].get_xdata()))
+
+        if start is not None:
+            if length is None or start + length > max_x:
+                length = max_x - start
+            self.time_slices[filename.stem] = {'start': start,
+                                               'length': length}
             self.file_list_widget.selectedItems()[0].setIcon(
                 QtGui.QIcon(r"scissors.png"))
         else:
