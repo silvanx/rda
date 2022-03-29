@@ -341,11 +341,11 @@ class MainWindow(QtWidgets.QMainWindow):
             length = float(length_raw)
         except ValueError:
             length = None
-        max_x = np.ceil(max(self.time_plot.axes.lines[0].get_xdata()))
+        max_t = np.ceil(max(self.time_plot.axes.lines[0].get_xdata()))
 
-        if start is not None:
-            if length is None or start + length > max_x:
-                length = max_x - start
+        if start is not None and start < max_t:
+            if length is None or start + length > max_t:
+                length = max_t - start
             self.time_slices[filename.stem] = {'start': start,
                                                'length': length}
             self.file_list_widget.selectedItems()[0].setIcon(
