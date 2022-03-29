@@ -173,7 +173,7 @@ class MainWindow(QtWidgets.QMainWindow):
             currentItem = QtWidgets.QListWidgetItem(self.file_list_widget)
             currentItem.setText(file)
             if file.split('.')[0] in self.time_slices:
-                currentItem.setIcon(QtGui.QIcon(r"scissors.png"))
+                currentItem.setIcon(QtGui.QIcon(r"data_viewer/scissors.png"))
 
     def plot_clicked_file(self):
         if len(self.file_list_widget.selectedItems()) > 0:
