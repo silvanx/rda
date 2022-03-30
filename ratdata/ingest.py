@@ -3,6 +3,7 @@ import numpy as np
 import re
 import h5py
 import pathlib
+import pickle
 
 
 @dataclass
@@ -54,6 +55,17 @@ def extract_stim_type_from_filename(filename: str) -> str:
     elif re.match(proportional_regex, filename):
         stim_type = 'proportional'
     return stim_type
+
+
+def read_file_slices(filename: str) -> dict:
+    file = pathlib.Path(filename)
+    if file.exists():
+        with open(file, 'rb') as f:
+            time_slices = pickle.load(f)
+    else:
+        time_slices = dict()
+
+    return time_slices
 
 
 def read_mce_matlab_file(filename: str) -> Recording:

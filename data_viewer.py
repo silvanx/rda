@@ -46,11 +46,7 @@ class MainWindow(QtWidgets.QMainWindow):
                           'random', 'proportional']
 
         self.time_slices_file = Path(self.file_dir) / 'time_slices.pickle'
-        if self.time_slices_file.exists():
-            with open(self.time_slices_file, 'rb') as f:
-                self.time_slices = pickle.load(f)
-        else:
-            self.time_slices = dict()
+        self.time_slices = ingest.read_file_slices(self.time_slices_file)
 
         self.time_plot = MplCanvas(self, width=5, height=4, dpi=100)
         self.psd_plot = MplCanvas(self, width=5, height=3, dpi=100)
