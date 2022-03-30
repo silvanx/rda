@@ -82,7 +82,6 @@ class TestDataProcessing(unittest.TestCase):
         teed_from_data = process.compute_teed_from_amplitude_recording(amplitude, tt, pw, f_stimulation, impedance)
         self.assertEqual(teed_analytical, teed_from_data)
     
-    
     def test_generate_stim_amplitude_from_stim_periods(self):
         f = 20000
         max_amplitude = 100
@@ -93,6 +92,23 @@ class TestDataProcessing(unittest.TestCase):
         self.assertEqual(np.sum(stim_amplitude_data), max_amplitude * f)
         self.assertEqual(np.sum(stim_amplitude_data[:f]), 0)
         self.assertEqual(np.sum(stim_amplitude_data[-f:]), 0)
+        
+    def test_trim_recording(self):
+        fs = 20000
+        max_t = 5
+        slice_start = 1
+        slice_length = 2
+        slice_end = slice_start + slice_length
+        data = np.zeros(max_t * fs)
+        data[:int(fs * (slice_start + slice_length / 2))] = 1 / (slice_length * fs)
+        data[int(slice_end * fs):] = 1
+        trimmed, tt = process.trim_recording(data, fs, slice_start, slice_length)
+        self.assertEqual(min(tt), slice_start)
+        self.assertEqual(max(tt), slice_end)
+        self.assertEqual(len(tt), len(trimmed))
+        self.assertEqual(len(tt), slice_length * fs)
+        self.assertAlmostEqual(sum(trimmed), 0.5)
+        
     
 
 if __name__ == '__main__':
