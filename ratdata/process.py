@@ -65,16 +65,17 @@ def get_change_in_beta_power_from_rec(rec: dm.RecordingFile) -> float:
 
 
 def get_change_in_rel_beta_power_from_rec(rec: dm.RecordingFile) -> float:
-    baseline = rec.baseline.get().baseline
-    recording_power = dm.RecordingPower.get(recording=rec)
-    baseline_power = dm.RecordingPower.get(recording=baseline)
-    recording_rel_power = (recording_power.beta_power /
-                           recording_power.total_power)
-    baseline_rel_power = (baseline_power.beta_power /
-                          baseline_power.total_power)
-    power_change = (recording_rel_power /
-                    baseline_rel_power - 1) * 100
-    return power_change
+    if rec.baseline.count() == 1:
+        baseline = rec.baseline.get().baseline
+        recording_power = dm.RecordingPower.get(recording=rec)
+        baseline_power = dm.RecordingPower.get(recording=baseline)
+        recording_rel_power = (recording_power.beta_power /
+                               recording_power.total_power)
+        baseline_rel_power = (baseline_power.beta_power /
+                              baseline_power.total_power)
+        power_change = (recording_rel_power /
+                        baseline_rel_power - 1) * 100
+        return power_change
 
 
 def compute_teed_continuous_stim(amplitude: int, pulse_width: int,

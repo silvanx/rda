@@ -58,6 +58,7 @@ def plot_change_in_relative_beta(rat_label: str,
         rec_array = dm.select_recordings_for_rat(rat, cond, stim)
         rbeta_change = [process.get_change_in_rel_beta_power_from_rec(f)
                         for f in rec_array]
+        rbeta_change = [e for e in rbeta_change if e is not None]
         boxplot_data.append(rbeta_change)
     boxplot_all_stim(boxplot_data, stim_array, plot_title, img_filename)
 
