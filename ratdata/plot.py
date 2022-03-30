@@ -120,16 +120,20 @@ def plot_relative_beta_one_day_one_rat(day: datetime.date,
                   dm.RecordingPower.get(recording=r).beta_power)
                  for r in recordings]
     label, rbeta = list(zip(*data_list))
-    fig = plt.figure(figsize=(12, 6))
-    plt.bar(label, rbeta)
-    plt.title('Relative beta power for %s on %s' %
-              (rat.label, day.strftime("%d %b %Y")))
-    if filename_prefix is not None:
-        filename = '%s_%s_%s.png' % (filename_prefix, rat.label,
-                                     day.strftime("%Y%m%d"))
-    else:
-        filename = None
-    save_or_show(fig, filename)
+    if rbeta:
+        fig = plt.figure(figsize=(12, 6))
+        ax = plt.gca()
+        plt.bar(range(len(rbeta)), rbeta)
+        ax.set_xticks(range(len(rbeta)))
+        ax.set_xticklabels(label)
+        plt.title('Relative beta power for %s on %s' %
+                  (rat.label, day.strftime("%d %b %Y")))
+        if filename_prefix is not None:
+            filename = '%s_%s_%s.png' % (filename_prefix, rat.label,
+                                         day.strftime("%Y%m%d"))
+        else:
+            filename = None
+        save_or_show(fig, filename)
 
 
 def save_or_show(fig: plt.Figure, filename: str = None) -> None:
