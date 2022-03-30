@@ -131,3 +131,14 @@ def generate_amplitude_from_stim_periods(r: ingest.Recording,
         stim_stop = int(sp[1] * fs)
         amplitude[stim_start:stim_stop] = max_amplitude
     return amplitude
+
+
+def trim_recording(x: np.ndarray, fs: int,
+                   slice_start: float,
+                   slice_len: float) -> tuple[np.ndarray, np.ndarray]:
+    slice_end = slice_start + slice_len
+    slice_start_n = int(slice_start * fs)
+    slice_end_n = int(slice_end * fs)
+    trimmed = x[slice_start_n:slice_end_n]
+    trimmed_tt = np.linspace(slice_start, slice_end, len(trimmed))
+    return (trimmed, trimmed_tt)
