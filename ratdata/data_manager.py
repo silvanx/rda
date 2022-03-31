@@ -194,3 +194,26 @@ def get_rat_labels() -> list[str]:
     rat_list = [r.label for r in query]
     rat_list.insert(0, None)
     return rat_list
+
+
+def upsert_power_record(f: ingest.Recording, recording_beta_power: float,
+                        recording_total_power: float) -> int:
+    q = RecordingPower.select().join(RecordingFile)\
+        .where(RecordingFile.filename == f.filename)
+    if q.count() == 0:
+        rp_id = RecordingPower.insert(recording=f,
+                                      beta_power=recording_beta_power,
+                                      total_power=recording_total_power)\
+                                          .execute()
+    elif q.count() == 1:
+        rec = q.get().recording
+        rp_id = RecordingPower.update(beta_power=recording_beta_power,
+                                      total_power=recording_total_power)\
+                              .where(RecordingPower.recording == rec)\
+                              .execute()
+    else:
+        msg = 'ERROR: found %d records for file %s' %\
+            (q.count(), f.filename)
+        print(msg)
+        rp_id = 0
+    return rp_id
