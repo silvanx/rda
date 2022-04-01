@@ -99,41 +99,57 @@ def plot_baseline_across_time(rat_label: str,
 
 
 def plot_relative_beta_one_day(day: datetime.date,
-                               filename_prefix: str = None) -> None:
+                               filename_prefix: str = None,
+                               ignore_stim: bool = False) -> None:
     rats = dm.RecordingFile.select().join(dm.Rat)\
         .where(dm.RecordingFile.recording_date == day)\
         .group_by(dm.RecordingFile.rat)
     for record in rats:
         rat = record.rat
-        plot_relative_beta_one_day_one_rat(day, rat, filename_prefix)
+        plot_relative_beta_one_day_one_rat(day, rat, filename_prefix,
+                                           ignore_stim)
 
 
 def plot_relative_beta_one_day_one_rat(day: datetime.date,
                                        rat: dm.Rat,
-                                       filename_prefix: str = None) -> None:
+                                       filename_prefix: str = None,
+                                       ignore_stim: bool = False) -> None:
 
-    recordings = dm.RecordingFile.select()\
-        .where((dm.RecordingFile.recording_date == day) &
-               (dm.RecordingFile.rat == rat))\
-        .order_by(dm.RecordingFile.filename)
-    data_list = [(r.condition,
-                  dm.RecordingPower.get(recording=r).beta_power)
-                 for r in recordings]
-    label, rbeta = list(zip(*data_list))
-    if rbeta:
-        fig = plt.figure(figsize=(12, 6))
-        ax = plt.gca()
-        plt.bar(range(len(rbeta)), rbeta)
-        ax.set_xticks(range(len(rbeta)))
-        ax.set_xticklabels(label)
-        plt.title('Relative beta power for %s on %s' %
-                  (rat.label, day.strftime("%d %b %Y")))
-        if filename_prefix is not None:
-            filename = '%s_%s_%s.png' % (filename_prefix, rat.label,
-                                         day.strftime("%Y%m%d"))
-        else:
-            filename = None
-        save_or_show(fig, filename)
+    if ignore_stim:
+        recordings = dm.RecordingFile.select()\
+            .join(dm.StimSettings)\
+            .where((dm.RecordingFile.recording_date == day) &
+                   (dm.RecordingFile.rat == rat) &
+                   (dm.StimSettings.stim_type == 'nostim'))\
+            .order_by(dm.RecordingFile.filename)
+    else:
+        recordings = dm.RecordingFile.select()\
+            .where((dm.RecordingFile.recording_date == day) &
+                   (dm.RecordingFile.rat == rat))\
+            .order_by(dm.RecordingFile.filename)
+    if recordings.count() > 0:
+        recordings = dm.RecordingFile.select()\
+            .where((dm.RecordingFile.recording_date == day) &
+                   (dm.RecordingFile.rat == rat))\
+            .order_by(dm.RecordingFile.filename)
+        data_list = [(r.condition,
+                      dm.RecordingPower.get(recording=r).beta_power)
+                     for r in recordings]
+        label, rbeta = list(zip(*data_list))
+        if rbeta:
+            fig = plt.figure(figsize=(12, 6))
+            ax = plt.gca()
+            plt.bar(range(len(rbeta)), rbeta)
+            ax.set_xticks(range(len(rbeta)))
+            ax.set_xticklabels(label)
+            plt.title('Relative beta power for %s on %s' %
+                      (rat.label, day.strftime("%d %b %Y")))
+            if filename_prefix is not None:
+                filename = '%s_%s_%s.png' % (filename_prefix, rat.label,
+                                             day.strftime("%Y%m%d"))
+            else:
+                filename = None
+            save_or_show(fig, filename)
 
 
 def save_or_show(fig: plt.Figure, filename: str = None) -> None:
