@@ -67,12 +67,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.start_slice_input = QtWidgets.QLineEdit()
         self.length_slice_input = QtWidgets.QLineEdit()
         update_slice_button = QtWidgets.QPushButton("Update selection")
+        reject_file_button = QtWidgets.QPushButton("Reject file")
         slice_selection.addWidget(QtWidgets.QLabel("Slice start:"))
         slice_selection.addWidget(self.start_slice_input)
         slice_selection.addWidget(QtWidgets.QLabel("Slice length:"))
         slice_selection.addWidget(self.length_slice_input)
         slice_selection.addWidget(update_slice_button)
+        slice_selection.addWidget(reject_file_button)
         update_slice_button.clicked.connect(self.update_selected_slice)
+        reject_file_button.clicked.connect(self.reject_file)
         self.start_slice_input.returnPressed.connect(
             self.update_selected_slice)
         self.length_slice_input.returnPressed.connect(
@@ -168,8 +171,12 @@ class MainWindow(QtWidgets.QMainWindow):
         for file in self.file_list:
             currentItem = QtWidgets.QListWidgetItem(self.file_list_widget)
             currentItem.setText(file)
-            if file.split('.')[0] in self.time_slices:
-                currentItem.setIcon(QtGui.QIcon(r"scissors.png"))
+            file_key = file.split('.')[0]
+            if file_key in self.time_slices:
+                if 'reject' in self.time_slices[file_key]:
+                    currentItem.setIcon(QtGui.QIcon(r"stop.png"))
+                else:
+                    currentItem.setIcon(QtGui.QIcon(r"scissors.png"))
 
     def plot_clicked_file(self):
         if len(self.file_list_widget.selectedItems()) > 0:
@@ -253,10 +260,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.length_slice_input.clear()
             self.length_slice_input.insert(str(elem['length']))
             highlight_stop = elem['start'] + elem['length']
+            if 'reject' in self.time_slices[file.stem] and self.time_slices[file.stem]['reject']:
+                c = 'red'
+            else:
+                c = 'green'
             self.time_plot.axes.fill_betweenx([min(x), max(x)],
                                               elem['start'],
                                               highlight_stop,
-                                              color='green', alpha=0.2)
+                                              color=c, alpha=0.2)
         self.time_plot.fig.tight_layout()
         self.time_plot.draw()
 
@@ -324,6 +335,28 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stim_selected = self.all_stims[index]
         self.file_list = self.populate_file_list()
         self.refresh_file_list_display()
+
+    def reject_file(self):
+        filename = Path(self.file_list[self.current_file])
+        file_key = filename.stem
+        max_t = np.ceil(max(self.time_plot.axes.lines[0].get_xdata()))
+        if file_key in self.time_slices:
+            self.time_slices[file_key]['reject'] = True
+            self.time_slices[file_key]['start'] = 0.0
+            self.time_slices[file_key]['length'] = max_t
+        else:
+            slice = {
+                'start': 0.0,
+                'length': max_t,
+                'reject': True
+            }
+            self.time_slices[file_key] = slice
+        self.file_list_widget.selectedItems()[0].setIcon(
+                QtGui.QIcon(r"stop.png"))
+        with open(self.time_slices_file, mode='wb') as f:
+            pickle.dump(self.time_slices, f)
+        full_filename = Path(self.file_dir) / filename.name
+        self.plot_data_from_file(full_filename)
 
     def update_selected_slice(self):
         filename = Path(self.file_list[self.current_file])
