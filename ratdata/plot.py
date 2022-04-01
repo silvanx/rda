@@ -1,6 +1,6 @@
 import datetime
 import matplotlib.pyplot as plt
-from ratdata import data_manager as dm, process
+from ratdata import data_manager as dm, process, ingest
 import numpy as np
 
 
@@ -110,11 +110,21 @@ def plot_relative_beta_one_day(day: datetime.date,
                                            ignore_stim)
 
 
+def file_rejected(time_slices, filename):
+    file_key = filename.split('.')[0]
+    if file_key in time_slices and 'reject' in time_slices[file_key] and time_slices[file_key]['reject']:
+        return True
+    else:
+        return False
+
+
 def plot_relative_beta_one_day_one_rat(day: datetime.date,
                                        rat: dm.Rat,
                                        filename_prefix: str = None,
                                        ignore_stim: bool = False) -> None:
-
+    time_slices_file = 'data/mce_recordings/time_slices.pickle'
+    # Read time slices from the file
+    time_slices = ingest.read_file_slices(time_slices_file)
     if ignore_stim:
         recordings = dm.RecordingFile.select()\
             .join(dm.StimSettings)\
@@ -134,22 +144,24 @@ def plot_relative_beta_one_day_one_rat(day: datetime.date,
             .order_by(dm.RecordingFile.filename)
         data_list = [(r.condition,
                       dm.RecordingPower.get(recording=r).beta_power)
-                     for r in recordings]
-        label, rbeta = list(zip(*data_list))
-        if rbeta:
-            fig = plt.figure(figsize=(12, 6))
-            ax = plt.gca()
-            plt.bar(range(len(rbeta)), rbeta)
-            ax.set_xticks(range(len(rbeta)))
-            ax.set_xticklabels(label)
-            plt.title('Relative beta power for %s on %s' %
-                      (rat.label, day.strftime("%d %b %Y")))
-            if filename_prefix is not None:
-                filename = '%s_%s_%s.png' % (filename_prefix, rat.label,
-                                             day.strftime("%Y%m%d"))
-            else:
-                filename = None
-            save_or_show(fig, filename)
+                     for r in recordings
+                     if not file_rejected(time_slices, r.filename)]
+        if data_list:
+            label, rbeta = list(zip(*data_list))
+            if rbeta:
+                fig = plt.figure(figsize=(12, 6))
+                ax = plt.gca()
+                plt.bar(range(len(rbeta)), rbeta)
+                ax.set_xticks(range(len(rbeta)))
+                ax.set_xticklabels(label)
+                plt.title('Relative beta power for %s on %s' %
+                          (rat.label, day.strftime("%d %b %Y")))
+                if filename_prefix is not None:
+                    filename = '%s_%s_%s.png' % (filename_prefix, rat.label,
+                                                 day.strftime("%Y%m%d"))
+                else:
+                    filename = None
+                save_or_show(fig, filename)
 
 
 def save_or_show(fig: plt.Figure, filename: str = None) -> None:
