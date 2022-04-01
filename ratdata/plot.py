@@ -20,13 +20,17 @@ def plot_beta_one_rat_one_condition(rat_label: str, cond: str,
 def plot_relative_beta_one_rat_one_condition(rat_label: str,
                                              cond: str,
                                              img_filename: str = None) -> None:
+    time_slices_file = 'data/mce_recordings/time_slices.pickle'
+    # Read time slices from the file
+    time_slices = ingest.read_file_slices(time_slices_file)
     rat = dm.Rat().get(label=rat_label)
     stim_array = ['nostim', 'continuous', 'on-off', 'random']
     boxplot_data = []
     for stim in stim_array:
         rec_array = dm.select_recordings_for_rat(rat, cond, stim)
         rbeta = [f.power.get().beta_power / f.power.get().total_power
-                 for f in rec_array]
+                 for f in rec_array
+                 if not file_rejected(time_slices, f.filename)]
         boxplot_data.append(rbeta)
     plot_title = 'Relative beta power %s %s' % (rat_label, cond)
     boxplot_all_stim(boxplot_data, stim_array, plot_title, img_filename)
@@ -50,6 +54,9 @@ def plot_change_in_absolute_beta(rat_label: str,
 def plot_change_in_relative_beta(rat_label: str,
                                  cond: str,
                                  img_filename: str = None) -> None:
+    time_slices_file = 'data/mce_recordings/time_slices.pickle'
+    # Read time slices from the file
+    time_slices = ingest.read_file_slices(time_slices_file)
     rat = dm.Rat().get(label=rat_label)
     stim_array = ['nostim', 'continuous', 'on-off', 'random']
     boxplot_data = []
@@ -57,7 +64,8 @@ def plot_change_in_relative_beta(rat_label: str,
     for stim in stim_array:
         rec_array = dm.select_recordings_for_rat(rat, cond, stim)
         rbeta_change = [process.get_change_in_rel_beta_power_from_rec(f)
-                        for f in rec_array]
+                        for f in rec_array
+                        if not file_rejected(time_slices, f.filename)]
         rbeta_change = [e for e in rbeta_change if e is not None]
         boxplot_data.append(rbeta_change)
     boxplot_all_stim(boxplot_data, stim_array, plot_title, img_filename)
@@ -78,6 +86,9 @@ def boxplot_all_stim(boxplot_data: list[list[float]], x_labels: list[str],
 
 def plot_baseline_across_time(rat_label: str,
                               img_filename: str = None) -> None:
+    time_slices_file = 'data/mce_recordings/time_slices.pickle'
+    # Read time slices from the file
+    time_slices = ingest.read_file_slices(time_slices_file)
     rat = dm.Rat.get(label=rat_label)
     baseline_recordings = dm.RecordingFile.select()\
         .where((dm.RecordingFile.rat == rat) &
@@ -86,10 +97,11 @@ def plot_baseline_across_time(rat_label: str,
     plot_power = []
     plot_date = []
     for rec in baseline_recordings:
-        power_data = dm.RecordingPower.get(recording=rec)
-        relative_power = power_data.beta_power / power_data.total_power
-        plot_power.append(relative_power)
-        plot_date.append(rec.recording_date)
+        if not file_rejected(time_slices, rec.filename):
+            power_data = dm.RecordingPower.get(recording=rec)
+            relative_power = power_data.beta_power / power_data.total_power
+            plot_power.append(relative_power)
+            plot_date.append(rec.recording_date)
 
     fig = plt.figure(figsize=(12, 6))
     plt.plot(plot_date, plot_power, '.-')
