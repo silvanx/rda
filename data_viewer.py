@@ -266,12 +266,13 @@ class MainWindow(QtWidgets.QMainWindow):
             start_sample = int(elem['start'] * fs)
             end_sample = int((elem['start'] + elem['length']) * fs)
             x = x[start_sample:end_sample]
-        f_signal, spectrum_signal = signal.welch(x, fs, nperseg=fs)
         self.psd_plot.axes.cla()
-        self.psd_plot.axes.plot(f_signal, spectrum_signal)
-        self.psd_plot.axes.set_xlim([0, 150])
-        max_150 = max(spectrum_signal[f_signal <= 150]) * 1.05
-        self.psd_plot.axes.set_ylim([0, max_150])
+        if len(x) > fs:
+            f_signal, spectrum_signal = signal.welch(x, fs, nperseg=fs)
+            self.psd_plot.axes.plot(f_signal, spectrum_signal)
+            self.psd_plot.axes.set_xlim([0, 150])
+            max_150 = max(spectrum_signal[f_signal <= 150]) * 1.05
+            self.psd_plot.axes.set_ylim([0, max_150])
         self.psd_plot.axes.set_xlabel('Frequency [Hz]')
         self.psd_plot.axes.set_title('PSD')
 
