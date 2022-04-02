@@ -6,7 +6,7 @@ import ratdata.ingest as ingest
 import dateutil.parser as dparser
 from peewee import SqliteDatabase, AutoField, DateField, TextField, \
                    ForeignKeyField, Model, DatabaseProxy, IntegerField, \
-                   FloatField, SelectQuery
+                   FloatField, SelectQuery, BooleanField
 import numpy as np
 
 
@@ -64,6 +64,17 @@ class RecordingPower(Model):
         database = database_proxy
 
 
+class RecordingSlice(Model):
+    recording = ForeignKeyField(RecordingFile, backref='slice', unique=True)
+    start = FloatField()
+    length = FloatField()
+    recording_rejected = BooleanField(default=False)
+    updated = BooleanField(default=False)
+
+    class Meta:
+        database = database_proxy
+
+
 def db_connect(db_filename: str) -> None:
     database_proxy.initialize(SqliteDatabase(db_filename))
 
@@ -71,8 +82,27 @@ def db_connect(db_filename: str) -> None:
 def db_create_tables() -> None:
     database_proxy.connect()
     database_proxy.create_tables([Rat, RecordingFile, StimSettings,
-                                  RecordingBaseline, RecordingPower])
+                                  RecordingBaseline, RecordingPower,
+                                  RecordingSlice])
     database_proxy.close()
+
+
+def update_slice(filename: str, start: float, length: float) -> None:
+    try:
+        rec = RecordingFile.get(filename=filename)
+    except RecordingFile.DoesNotExist:
+        print("ERROR: file %s is not in the database" % filename)
+        return
+    if rec.slice.count() == 1:
+        RecordingSlice.update(start=start, length=length,
+                              recording_rejected=False, updated=True)\
+                      .where(RecordingSlice.recording == rec).execute()
+    elif rec.slice.count() == 0:
+        RecordingSlice.insert(recording=rec, start=start, length=length,
+                              recording_rejected=False, updated=True).execute()
+    else:
+        print("ERROR: multiple slices assigned to recording %s: %d" %
+              (filename, rec.slice.count()))
 
 
 def find_all_recording_files_dir(dirname: str) -> list[str]:
