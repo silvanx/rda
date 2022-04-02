@@ -87,7 +87,8 @@ def db_create_tables() -> None:
     database_proxy.close()
 
 
-def update_slice(filename: str, start: float, length: float) -> None:
+def update_slice(filename: str, start: float, length: float,
+                 reject: bool = False) -> None:
     try:
         rec = RecordingFile.get(filename=filename)
     except RecordingFile.DoesNotExist:
@@ -95,11 +96,12 @@ def update_slice(filename: str, start: float, length: float) -> None:
         return
     if rec.slice.count() == 1:
         RecordingSlice.update(start=start, length=length,
-                              recording_rejected=False, updated=True)\
+                              recording_rejected=reject, updated=True)\
                       .where(RecordingSlice.recording == rec).execute()
     elif rec.slice.count() == 0:
         RecordingSlice.insert(recording=rec, start=start, length=length,
-                              recording_rejected=False, updated=True).execute()
+                              recording_rejected=reject,
+                              updated=True).execute()
     else:
         print("ERROR: multiple slices assigned to recording %s: %d" %
               (filename, rec.slice.count()))
