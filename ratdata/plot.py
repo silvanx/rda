@@ -124,7 +124,9 @@ def plot_relative_beta_one_day(day: datetime.date,
 
 def file_rejected(time_slices, filename):
     file_key = filename.split('.')[0]
-    if file_key in time_slices and 'reject' in time_slices[file_key] and time_slices[file_key]['reject']:
+    if (file_key in time_slices and
+            'reject' in time_slices[file_key] and
+            time_slices[file_key]['reject']):
         return True
     else:
         return False

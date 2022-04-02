@@ -260,7 +260,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.length_slice_input.clear()
             self.length_slice_input.insert(str(elem['length']))
             highlight_stop = elem['start'] + elem['length']
-            if 'reject' in self.time_slices[file.stem] and self.time_slices[file.stem]['reject']:
+            if ('reject' in self.time_slices[file.stem] and
+                    self.time_slices[file.stem]['reject']):
                 c = 'red'
             else:
                 c = 'green'
