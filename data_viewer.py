@@ -253,30 +253,31 @@ class MainWindow(QtWidgets.QMainWindow):
         self.time_plot.axes.plot(tt, x)
         self.time_plot.axes.set_xlabel('Time [s]')
         self.time_plot.axes.set_title(file.stem)
-        if file.stem in self.time_slices:
-            elem = self.time_slices[file.stem]
+        slice_q = dm.RecordingSlice.select().join(dm.RecordingFile)\
+            .where(dm.RecordingFile.filename == file.name)
+        if slice_q.count() == 1:
+            slice = slice_q.get()
             self.start_slice_input.clear()
-            self.start_slice_input.insert(str(elem['start']))
             self.length_slice_input.clear()
-            self.length_slice_input.insert(str(elem['length']))
-            highlight_stop = elem['start'] + elem['length']
-            if ('reject' in self.time_slices[file.stem] and
-                    self.time_slices[file.stem]['reject']):
+            self.start_slice_input.insert(str(slice.start))
+            self.length_slice_input.insert(str(slice.length))
+            highlight_start = slice.start
+            highlight_stop = slice.start + slice.length
+            if slice.recording_rejected:
                 c = 'red'
             else:
                 c = 'green'
             self.time_plot.axes.fill_betweenx([min(x), max(x)],
-                                              elem['start'],
+                                              highlight_start,
                                               highlight_stop,
                                               color=c, alpha=0.2)
         self.time_plot.fig.tight_layout()
         self.time_plot.draw()
 
         fs = 20000
-        if file.stem in self.time_slices:
-            elem = self.time_slices[file.stem]
-            start_sample = int(elem['start'] * fs)
-            end_sample = int((elem['start'] + elem['length']) * fs)
+        if slice_q.count() == 1:
+            start_sample = int(highlight_start * fs)
+            end_sample = int((highlight_stop) * fs)
             x = x[start_sample:end_sample]
         self.psd_plot.axes.cla()
         if len(x) > fs:
