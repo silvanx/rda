@@ -380,6 +380,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 length = max_t - start
             self.time_slices[filename.stem] = {'start': start,
                                                'length': length}
+            dm.update_slice(filename.name, start, length, False)
             self.file_list_widget.selectedItems()[0].setIcon(
                 QtGui.QIcon(r"scissors.png"))
         else:
