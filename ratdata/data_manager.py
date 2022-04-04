@@ -107,6 +107,23 @@ def update_slice(filename: str, start: float, length: float,
               (filename, rec.slice.count()))
 
 
+def is_recording_rejected(filename: str) -> bool:
+    q = RecordingFile.select()\
+        .where(RecordingFile.filename == filename)
+    if (q.count() == 1 and
+            q.get().slice.count() == 1 and
+            q.get().slice.get().recording_rejected):
+        return True
+    else:
+        return False
+
+
+def is_recording_sliced(filename: str) -> bool:
+    q = RecordingFile.select()\
+        .where(RecordingFile.filename == filename)
+    return q.count() == 1
+
+
 def find_all_recording_files_dir(dirname: str) -> list[str]:
     dir = Path(dirname)
     f_re = re.compile(r'^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}'

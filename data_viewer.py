@@ -173,12 +173,16 @@ class MainWindow(QtWidgets.QMainWindow):
         for file in self.file_list:
             currentItem = QtWidgets.QListWidgetItem(self.file_list_widget)
             currentItem.setText(file)
-            file_key = file.split('.')[0]
-            if file_key in self.time_slices:
-                if 'reject' in self.time_slices[file_key]:
-                    currentItem.setIcon(QtGui.QIcon(r"stop.png"))
-                else:
-                    currentItem.setIcon(QtGui.QIcon(r"scissors.png"))
+            if dm.is_recording_rejected(file):
+                currentItem.setIcon(QtGui.QIcon(r"stop.png"))
+            elif dm.is_recording_sliced(file):
+                currentItem.setIcon(QtGui.QIcon(r"scissors.png"))
+            # file_key = file.split('.')[0]
+            # if file_key in self.time_slices:
+            #     # if 'reject' in self.time_slices[file_key]:
+            #     #     currentItem.setIcon(QtGui.QIcon(r"stop.png"))
+            #     # else:
+            #     currentItem.setIcon(QtGui.QIcon(r"scissors.png"))
 
     def plot_clicked_file(self):
         if len(self.file_list_widget.selectedItems()) > 0:
