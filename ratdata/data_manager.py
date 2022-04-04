@@ -119,7 +119,7 @@ def is_recording_rejected(filename: str) -> bool:
 
 
 def is_recording_sliced(filename: str) -> bool:
-    q = RecordingFile.select()\
+    q = RecordingSlice.select().join(RecordingFile)\
         .where(RecordingFile.filename == filename)
     return q.count() == 1
 

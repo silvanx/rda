@@ -394,6 +394,10 @@ class MainWindow(QtWidgets.QMainWindow):
             if filename.stem in self.time_slices:
                 self.time_slices.pop(filename.stem)
             self.file_list_widget.selectedItems()[0].setIcon(QtGui.QIcon(None))
+            s = dm.RecordingSlice.select().join(dm.RecordingFile)\
+                .where(dm.RecordingFile.filename == filename.name)
+            if s.count() == 1:
+                s.get().delete_instance()
         with open(self.time_slices_file, mode='wb') as f:
             pickle.dump(self.time_slices, f)
         full_filename = Path(self.file_dir) / filename.name
