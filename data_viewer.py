@@ -342,6 +342,7 @@ class MainWindow(QtWidgets.QMainWindow):
         filename = Path(self.file_list[self.current_file])
         file_key = filename.stem
         max_t = np.ceil(max(self.time_plot.axes.lines[0].get_xdata()))
+        dm.update_slice(filename.name, 0, max_t, True)
         if file_key in self.time_slices:
             self.time_slices[file_key]['reject'] = True
             self.time_slices[file_key]['start'] = 0.0
