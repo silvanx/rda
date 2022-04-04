@@ -223,9 +223,23 @@ def get_electrode_data_from_recording(rec: RecordingFile) -> tuple[np.ndarray,
 
 def get_rat_labels() -> list[str]:
     query = Rat.select().order_by(Rat.label)
-    rat_list = [r.label for r in query]
-    rat_list.insert(0, None)
-    return rat_list
+    result = [r.label for r in query]
+    result.insert(0, None)
+    return result
+
+
+def get_stim_types() -> list[str]:
+    query = StimSettings.select().group_by(StimSettings.stim_type)
+    result = [e.stim_type for e in query]
+    result.insert(0, None)
+    return result
+
+
+def get_condition_labels() -> list[str]:
+    query = RecordingFile.select().group_by(RecordingFile.condition)
+    result = [e.condition for e in query]
+    result.insert(0, None)
+    return result
 
 
 def upsert_power_record(f: ingest.Recording, recording_beta_power: float,
