@@ -231,11 +231,21 @@ def get_all_recording_dates_nostim() -> list[datetime.date]:
     return dates
 
 
-def get_electrode_data_from_recording(rec: RecordingFile) -> tuple[np.ndarray,
+def get_electrode_data_from_recording(rec: RecordingFile,
+                                      select_slice: bool) -> tuple[np.ndarray,
                                                                    float]:
     file_fullpath = str(pathlib.Path(rec.dirname) / rec.filename)
     recording_data = ingest.read_mce_matlab_file(file_fullpath)
-    return (recording_data.electrode_data, recording_data.dt)
+    data = recording_data.electrode_data
+    dt = recording_data.dt
+    if select_slice and rec.slice.count() == 1:
+        slice = rec.slice.get()
+        start = int(slice.start / dt)
+        end = int((slice.start + slice.length) / dt)
+        data = data[:, start:end]
+        return (data, dt, (slice.start, slice.start + slice.length))
+    else:
+        return (data, dt, (0, data.shape[1] * dt))
 
 
 def get_rat_labels() -> list[str]:

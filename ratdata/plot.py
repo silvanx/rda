@@ -187,19 +187,31 @@ def save_or_show(fig: plt.Figure, filename: str = None) -> None:
         plt.show()
 
 
-def plot_biomarker_steps(data: np.ndarray, fs: int, low_fs: int = 500,
+def plot_biomarker_steps(data: np.ndarray, fs: int,
+                         time: tuple[float, float] = None, low_fs: int = 500,
                          lowcut: int = 13, hicut: int = 30,
                          p_seg_len: int = 50, plot_title: str = None,
                          filename: str = None) -> None:
-    maxtime = len(data) / fs
+    if time is None:
+        start_time = 0
+        maxtime = len(data) / fs
+    else:
+        start_time = time[0]
+        maxtime = time[1]
     downsampled = process.downsample_signal(data, fs, low_fs)
     beta = process.bandpass_filter(downsampled, low_fs, lowcut, hicut)
+    beta_no_mean = process.bandpass_filter(downsampled - np.mean(downsampled),
+                                           low_fs, lowcut, hicut)
     beta_power = process.rolling_power_signal(beta, p_seg_len)
+    rms_beta = np.sqrt(np.mean(beta ** 2))
+    rms_beta_no_mean = np.sqrt(np.mean((beta_no_mean) ** 2))
+    print('RMS beta: %f, RMS beta without mean: %f' %
+          (rms_beta, rms_beta_no_mean))
     total_power = process.rolling_power_signal(downsampled, p_seg_len)
     biomarker = beta_power / total_power
     p_cut = int(p_seg_len / 2)
-    tt = np.linspace(0, maxtime, len(data))
-    ttd = np.linspace(0, maxtime, len(downsampled))
+    tt = np.linspace(start_time, maxtime, len(data))
+    ttd = np.linspace(start_time, maxtime, len(downsampled))
 
     fig, ax = plt.subplots(4, 1, sharex=True, figsize=(14, 10))
     ax[0].plot(tt, data)
