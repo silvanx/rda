@@ -143,3 +143,34 @@ def trim_recording(x: np.ndarray, fs: int,
     trimmed = x[slice_start_n:slice_end_n]
     trimmed_tt = np.linspace(slice_start, slice_end, len(trimmed))
     return (trimmed, trimmed_tt)
+
+
+def mean_stim_amplitude_from_gui_recording(rat_label, max_amplitude,
+                                           datadir_gui):
+    files = [f for f in datadir_gui.iterdir()
+             if f.match('*' + rat_label + '*.txt')]
+    amplitude_dict = dict()
+    for f in files:
+        recording_date = f.name.split('T')[0]
+        a = max_amplitude[recording_date][rat_label]
+        data = ingest.read_stim_amplitude_from_gui_recording(f, a)
+        if recording_date in amplitude_dict:
+            amplitude_dict[recording_date] = np.append(
+                amplitude_dict[recording_date], data)
+        else:
+            amplitude_dict[recording_date] = data
+        print_mean_and_percentile(f.name, data)
+    all_amplitudes = []
+    for d, a in amplitude_dict.items():
+        s = '%s mean on %s' % (rat_label, d)
+        data = amplitude_dict[d]
+        all_amplitudes = np.append(all_amplitudes, data)
+        print_mean_and_percentile(s, data)
+    print_mean_and_percentile(rat_label + ' general mean', all_amplitudes)
+
+
+def print_mean_and_percentile(intro_string, data):
+    mean = np.mean(data)
+    p10 = np.percentile(data, 10)
+    p20 = np.percentile(data, 20)
+    print('%s: %.2f uA, p10: %.2f, p20: %.2f' % (intro_string, mean, p10, p20))

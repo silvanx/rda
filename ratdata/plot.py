@@ -230,3 +230,21 @@ def plot_biomarker_steps(data: np.ndarray, fs: int,
     ax[-1].set_xlabel('Time [s]')
 
     save_or_show(fig, filename)
+
+
+def plot_amplitude_with_percentiles(plot_data, tstart=0, tstop=None, fs=200):
+    p10 = np.percentile(plot_data, 10)
+    p20 = np.percentile(plot_data, 20)
+    plt.figure(figsize=(20, 10), dpi=100)
+    if tstop is None or tstop * fs > len(plot_data):
+        tstop = int(len(plot_data) / fs)
+    ttn = (tstop - tstart) * fs
+    plt.plot(np.linspace(tstart, tstop, ttn),
+             plot_data[tstart * fs:tstop * fs])
+    plt.xlabel('Time [s]')
+    plt.ylabel('Amplitude [uA]')
+    plt.axhline(np.mean(plot_data), linestyle='-', color='k')
+    plt.axhline(p20, linestyle='--', color='k')
+    plt.axhline(p10, linestyle=':', color='k')
+    plt.legend(['rat2 stim amplitude [uA]', 'mean amplitude',
+                '20th percentile', '10th percentile'])
