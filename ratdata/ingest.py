@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from collections.abc import Sequence
 import numpy as np
 import re
 import h5py
@@ -15,6 +16,7 @@ class Recording:
     rat_label: str = None
     recording_type: str = None
     stim_periods: tuple = ()
+    pulse_periods: tuple = ()
 
 
 def extract_info_from_filename(filename: str) -> tuple[str, str, str]:
@@ -68,6 +70,28 @@ def read_file_slices(filename: str) -> dict:
     return time_slices
 
 
+def export_stim_events(file: h5py.File, fieldname: str) -> list[float]:
+    result = []
+    if fieldname is not None:
+        if file.get(fieldname).get('length')[0][0] > 0:
+            result = file.get(fieldname).get('times')[0]
+    return result
+
+
+def periods_from_start_stop(start: list[float],
+                            stop: list[float]) -> Sequence[tuple[float,
+                                                                 float]]:
+    periods = []
+    if len(start) > 0 and len(stop) > 0:
+        if stop[0] < start[0]:
+            stop = np.delete(stop, 0)
+        if start[-1] > stop[-1]:
+            start = np.delete(start, -1)
+        periods = tuple([b for b in
+                         zip(start, stop)])
+    return periods
+
+
 def read_mce_matlab_file(filename: str) -> Recording:
     filename = str(filename)
     file = h5py.File(filename)
@@ -78,7 +102,7 @@ def read_mce_matlab_file(filename: str) -> Recording:
     time_of_recording, rat_label, recording_type = \
         extract_info_from_filename(filename)
 
-    variable_names = {
+    field_names = {
         'E:E1': {
             'regex': '^E:E1$',
             'number': None,
@@ -109,21 +133,31 @@ def read_mce_matlab_file(filename: str) -> Recording:
             'number': None,
             'name': None
         },
+        'Pulse Start': {
+            'regex': '.* STG 1 Single Pulse Start$',
+            'number': None,
+            'name': None
+        },
+        'Pulse Stop': {
+            'regex': '.* STG 1 Single Pulse Stop$',
+            'number': None,
+            'name': None
+        },
     }
 
     for ch_number in range(1, num_channels):
         fieldname = ''.join([prefix, str(ch_number)])
         field_info = ''.join([chr(c[0]) for c in
                               file.get(fieldname).get('title')])
-        for k, v in variable_names.items():
+        for k, v in field_names.items():
             if re.match(v['regex'], field_info):
-                old_number = variable_names[k]['number']
+                old_number = field_names[k]['number']
                 if old_number is None or ch_number < old_number:
-                    variable_names[k]['number'] = ch_number
-                    variable_names[k]['name'] = fieldname
+                    field_names[k]['number'] = ch_number
+                    field_names[k]['name'] = fieldname
 
     for i, channel_name in enumerate(['E:E1', 'E:E2', 'E:E3', 'E:E4']):
-        key = variable_names[channel_name]['name']
+        key = field_names[channel_name]['name']
         data = file.get(key)
         dt = data.get('interval')[0][0]
         samples = int(data.get('length')[0][0])
@@ -133,29 +167,22 @@ def read_mce_matlab_file(filename: str) -> Recording:
             electrode_data = np.zeros((4, samples))
         electrode_data[i, :] = raw_values
 
-    stim_start_times = []
-    start_ch = variable_names['STG 1 Start']['name']
-    if start_ch is not None:
-        if file.get(start_ch).get('length')[0][0] > 0:
-            stim_start_times = file.get(start_ch).get('times')[0]
+    stim_start = export_stim_events(file,
+                                    field_names['STG 1 Start']['name'])
 
-    stim_stop_times = []
-    stop_ch = variable_names['STG 1 Stop']['name']
-    if stop_ch is not None:
-        if file.get(stop_ch).get('length')[0][0] > 0:
-            stim_stop_times = file.get(stop_ch).get('times')[0]
+    stim_stop = export_stim_events(file,
+                                   field_names['STG 1 Stop']['name'])
+    pulse_start = export_stim_events(file,
+                                     field_names['Pulse Start']['name'])
+    pulse_stop = export_stim_events(file,
+                                    field_names['Pulse Stop']['name'])
 
-    stim_periods = []
-    if len(stim_start_times) > 0 and len(stim_stop_times) > 0:
-        if stim_stop_times[0] < stim_start_times[0]:
-            stim_stop_times = np.delete(stim_stop_times, 0)
-        if stim_start_times[-1] > stim_stop_times[-1]:
-            stim_start_times = np.delete(stim_start_times, -1)
-        stim_periods = tuple([b for b in
-                              zip(stim_start_times, stim_stop_times)])
+    stim_periods = periods_from_start_stop(stim_start, stim_stop)
+
+    pulse_periods = periods_from_start_stop(pulse_start, pulse_stop)
 
     result = Recording(electrode_data, filename, dt, time_of_recording,
-                       rat_label, recording_type, stim_periods)
+                       rat_label, recording_type, stim_periods, pulse_periods)
     return result
 
 
