@@ -169,8 +169,27 @@ def mean_stim_amplitude_from_gui_recording(rat_label, max_amplitude,
     print_mean_and_percentile(rat_label + ' general mean', all_amplitudes)
 
 
-def print_mean_and_percentile(intro_string, data):
+def print_mean_and_percentile(intro_string: str, data: np.ndarray) -> None:
     mean = np.mean(data)
     p10 = np.percentile(data, 10)
     p20 = np.percentile(data, 20)
     print('%s: %.2f uA, p10: %.2f, p20: %.2f' % (intro_string, mean, p10, p20))
+
+
+def create_pulse_template(rec: ingest.Recording,
+                          template_length: int = None) -> np.ndarray:
+    fs = int(1 / rec.dt)
+    if template_length is None:
+        longest_pulse = max(rec.pulse_periods,
+                            key=lambda item: item[1] - item[0])
+        template_length = int((longest_pulse[1] - longest_pulse[0]) * fs)
+    template = np.zeros(template_length)
+    mean_data = np.mean(rec.electrode_data, axis=0)
+    if len(rec.pulse_periods) > 0:
+        for s, e in rec.pulse_periods:
+            s_n = int(s * fs)
+            e_n = s_n + template_length
+            if e_n < len(mean_data):
+                template += mean_data[s_n: e_n]
+        template /= len(rec.pulse_periods)
+    return template
