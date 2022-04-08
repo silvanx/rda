@@ -71,13 +71,59 @@ def read_file_slices(filename: str) -> dict:
 def read_mce_matlab_file(filename: str) -> Recording:
     filename = str(filename)
     file = h5py.File(filename)
-    prefix = '_'.join(list(file.keys())[0].split('_')[:-1])
+    prefix_list = list(file.keys())[0].split('_')
+    prefix_list[-1] = 'Ch'
+    prefix = '_'.join(prefix_list)
     num_channels = len(list(file.keys()))
     time_of_recording, rat_label, recording_type = \
         extract_info_from_filename(filename)
 
-    for i, channel_name in enumerate(['Ch2', 'Ch3', 'Ch4', 'Ch5']):
-        key = '_'.join([prefix, channel_name])
+    variable_names = {
+        'E:E1': {
+            'regex': '^E:E1$',
+            'number': None,
+            'name': None
+        },
+        'E:E2': {
+            'regex': '^E:E2$',
+            'number': None,
+            'name': None
+        },
+        'E:E3': {
+            'regex': '^E:E3$',
+            'number': None,
+            'name': None
+        },
+        'E:E4': {
+            'regex': '^E:E4$',
+            'number': None,
+            'name': None
+        },
+        'STG 1 Start': {
+            'regex': '.* STG 1 Stimulation Start$',
+            'number': None,
+            'name': None
+        },
+        'STG 1 Stop': {
+            'regex': '.* STG 1 Stimulation Stop$',
+            'number': None,
+            'name': None
+        },
+    }
+
+    for ch_number in range(1, num_channels):
+        fieldname = ''.join([prefix, str(ch_number)])
+        field_info = ''.join([chr(c[0]) for c in
+                              file.get(fieldname).get('title')])
+        for k, v in variable_names.items():
+            if re.match(v['regex'], field_info):
+                old_number = variable_names[k]['number']
+                if old_number is None or ch_number < old_number:
+                    variable_names[k]['number'] = ch_number
+                    variable_names[k]['name'] = fieldname
+
+    for i, channel_name in enumerate(['E:E1', 'E:E2', 'E:E3', 'E:E4']):
+        key = variable_names[channel_name]['name']
         data = file.get(key)
         dt = data.get('interval')[0][0]
         samples = int(data.get('length')[0][0])
@@ -88,21 +134,18 @@ def read_mce_matlab_file(filename: str) -> Recording:
         electrode_data[i, :] = raw_values
 
     stim_start_times = []
-    stim_stop_times = []
-    stim_periods = []
-    for ch_number in range(1, num_channels):
-        fieldname = ''.join([prefix, '_Ch', str(ch_number)])
-        field_info = ''.join([chr(c[0]) for c in
-                              file.get(fieldname).get('title')])
-        if re.match('.* STG 1 Stimulation Start$', field_info) is not None:
-            # print("%d: %s" % (channel_number, field_info))
-            if file.get(fieldname).get('length')[0][0] > 0:
-                stim_start_times = file.get(fieldname).get('times')[0]
-        if re.match('.* STG 1 Stimulation Stop$', field_info) is not None:
-            # print("%d: %s" % (channel_number, field_info))
-            if file.get(fieldname).get('length')[0][0] > 0:
-                stim_stop_times = file.get(fieldname).get('times')[0]
+    start_ch = variable_names['STG 1 Start']['name']
+    if start_ch is not None:
+        if file.get(start_ch).get('length')[0][0] > 0:
+            stim_start_times = file.get(start_ch).get('times')[0]
 
+    stim_stop_times = []
+    stop_ch = variable_names['STG 1 Stop']['name']
+    if stop_ch is not None:
+        if file.get(stop_ch).get('length')[0][0] > 0:
+            stim_stop_times = file.get(stop_ch).get('times')[0]
+
+    stim_periods = []
     if len(stim_start_times) > 0 and len(stim_stop_times) > 0:
         if stim_stop_times[0] < stim_start_times[0]:
             stim_stop_times = np.delete(stim_stop_times, 0)
