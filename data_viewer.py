@@ -1,3 +1,4 @@
+import pathlib
 import pickle
 import re
 import sys
@@ -11,7 +12,7 @@ from matplotlib.figure import Figure
 from pathlib import Path
 import numpy as np
 import scipy.signal as signal
-from ratdata import ingest, data_manager as dm
+from ratdata import ingest, data_manager as dm, process
 
 matplotlib.use('Qt5Agg')
 matplotlib.rcParams['agg.path.chunksize'] = 10000
@@ -30,9 +31,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
 
+        self.file_dir = 'data/mce_recordings'
+        self.db_file = 'rat_data.db'
+
         dm.db_connect('rat_data.db')
 
-        self.file_dir = 'data/mce_recordings'
         self.current_file = None
         self.rat_selected = None
         self.condition_selected = None
@@ -53,16 +56,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.time_plot = MplCanvas(self, width=5, height=4, dpi=100)
         self.psd_plot = MplCanvas(self, width=5, height=3, dpi=100)
 
-        # Create matplotlib edit toolbar
+        # Matplotlib edit toolbar
         toolbar = NavigationToolbar(self.time_plot, self)
         toolbar_psd = NavigationToolbar(self.psd_plot, self)
 
-        # Create next/previous buttons
+        # Next/previous buttons
         nav_buttons = QtWidgets.QHBoxLayout()
         prev_button = QtWidgets.QPushButton("< Previous")
         next_button = QtWidgets.QPushButton("Next >")
         nav_buttons.addWidget(prev_button)
         nav_buttons.addWidget(next_button)
+
+        show_stim_spikes_button = QtWidgets.QPushButton("Stim pulse")
+        self.stim_pulse_window = StimPulseWindow(self)
+        show_stim_spikes_button.clicked.connect(self.show_stim_pulse_window)
 
         # Select slice controls
         slice_selection = QtWidgets.QHBoxLayout()
@@ -76,6 +83,7 @@ class MainWindow(QtWidgets.QMainWindow):
         slice_selection.addWidget(self.length_slice_input)
         slice_selection.addWidget(update_slice_button)
         slice_selection.addWidget(reject_file_button)
+        slice_selection.addWidget(show_stim_spikes_button)
         update_slice_button.clicked.connect(self.update_selected_slice)
         reject_file_button.clicked.connect(self.reject_file)
         self.start_slice_input.returnPressed.connect(
@@ -148,6 +156,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.file_list_widget.itemSelectionChanged.connect(
             self.plot_clicked_file)
 
+        self.setWindowTitle('Rat data analysis')
         self.setCentralWidget(widget)
         self.showMaximized()
 
@@ -228,6 +237,7 @@ class MainWindow(QtWidgets.QMainWindow):
             samples = data.electrode_data.shape[1]
             tt = np.linspace(0, samples * data.dt, samples)
             x = np.mean(data.electrode_data, 0)
+            self.stim_pulse_window.set_recording(data)
             self.update_plot(tt, x, file)
 
     def plot_data_from_gui_csv(self, filename):
@@ -297,6 +307,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.psd_plot.fig.tight_layout()
         self.psd_plot.draw()
+        if self.stim_pulse_window.isVisible():
+            self.stim_pulse_window.update_display()
 
     def populate_file_list(self):
         dir = Path(self.file_dir)
@@ -402,6 +414,70 @@ class MainWindow(QtWidgets.QMainWindow):
             pickle.dump(self.time_slices, f)
         full_filename = Path(self.file_dir) / filename.name
         self.plot_data_from_file(full_filename)
+
+    def show_stim_pulse_window(self):
+        self.stim_pulse_window.update_display()
+        self.stim_pulse_window.show()
+
+    def get_current_filename(self) -> str:
+        if self.current_file is None:
+            return ''
+        return self.file_list[self.current_file].split('.')[0]
+
+
+class StimPulseWindow(QtWidgets.QMainWindow):
+
+    def __init__(self, parent=None):
+        super(StimPulseWindow, self).__init__(parent)
+
+        self.setWindowTitle('Stimulus pulse')
+        self.recording = None
+        self.template_length = 15
+
+        self.stim_pulse_plot = MplCanvas(self, width=5, height=4, dpi=100)
+        self.toolbar = NavigationToolbar(self.stim_pulse_plot, self)
+
+        plot_area = QtWidgets.QVBoxLayout()
+        plot_area.addWidget(self.toolbar)
+        plot_area.addWidget(self.stim_pulse_plot)
+
+        widget = QtWidgets.QWidget()
+        widget.setLayout(plot_area)
+
+        self.setCentralWidget(widget)
+
+    def update_display(self):
+        self.stim_pulse_plot.axes.cla()
+
+        plot_title = self.parent().get_current_filename()
+        if (self.recording is not None and
+                self.recording.filename == plot_title):
+            if len(self.recording.pulse_periods) == 0:
+                self.plot_message_center('No stim in this file')
+            else:
+                template = process.create_pulse_template(self.recording,
+                                                         self.template_length,
+                                                         channels='all')
+                if len(template.shape) == 1:
+                    self.stim_pulse_plot.axes.plot(template)
+                else:
+                    for i in range(template.shape[0]):
+                        self.stim_pulse_plot.axes.plot(template[i, :])
+        elif self.recording is not None:
+            print('ERROR: Data does not match the filename')
+        self.stim_pulse_plot.axes.set_title(plot_title)
+        self.stim_pulse_plot.draw()
+        self.stim_pulse_plot.flush_events()
+
+    def plot_message_center(self, text: str) -> None:
+        self.stim_pulse_plot.axes.set_xlim([0, 1])
+        self.stim_pulse_plot.axes.set_ylim([0, 1])
+        self.stim_pulse_plot.axes.text(0.5, 0.5, text,
+                                       ha='center', va='center')
+
+    def set_recording(self, data: ingest.Recording) -> None:
+        self.recording = data
+        data.filename = str(pathlib.Path(data.filename).stem)
 
 
 if __name__ == '__main__':

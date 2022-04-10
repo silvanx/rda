@@ -177,19 +177,35 @@ def print_mean_and_percentile(intro_string: str, data: np.ndarray) -> None:
 
 
 def create_pulse_template(rec: ingest.Recording,
-                          template_length: int = None) -> np.ndarray:
+                          template_length: int = None,
+                          channels: str = 'mean') -> np.ndarray:
     fs = int(1 / rec.dt)
     if template_length is None:
         longest_pulse = max(rec.pulse_periods,
                             key=lambda item: item[1] - item[0])
         template_length = int((longest_pulse[1] - longest_pulse[0]) * fs)
-    template = np.zeros(template_length)
-    mean_data = np.mean(rec.electrode_data, axis=0)
+
+    if channels == 'mean':
+        prepared_data = np.mean(rec.electrode_data, axis=0)
+    elif channels == 'all':
+        prepared_data = rec.electrode_data
+
+    n_channels = prepared_data.shape[0] if\
+        len(prepared_data.shape) == 2 else 1
+    n_samples = prepared_data.shape[1] if\
+        len(prepared_data.shape) == 2 else len(prepared_data)
+    template = np.zeros((n_channels, template_length))
     if len(rec.pulse_periods) > 0:
         for s, e in rec.pulse_periods:
             s_n = int(s * fs)
             e_n = s_n + template_length
-            if e_n < len(mean_data):
-                template += mean_data[s_n: e_n]
+            if e_n < n_samples:
+                for i in range(n_channels):
+                    if n_channels > 1:
+                        template[i, :] += prepared_data[i, s_n: e_n]
+                    else:
+                        template[i, :] += prepared_data[s_n: e_n]
         template /= len(rec.pulse_periods)
+    if template.shape[0] == 1:
+        template = template.flatten()
     return template
