@@ -4,6 +4,7 @@ import re
 import sys
 
 import matplotlib
+import matplotlib.pyplot as plt
 from PyQt5 import QtWidgets, QtCore, QtGui
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg,\
@@ -310,6 +311,17 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.stim_pulse_window.isVisible():
             self.stim_pulse_window.update_display()
 
+    def display_time_points(self, x: list[float], color: str) -> plt.Line2D:
+        y = [0 for e in x]
+        line = self.time_plot.axes.plot(x, y, color=color, marker=6,
+                                        linestyle=' ')
+        self.time_plot.draw()
+        return line[0]
+
+    def hide_time_points(self, line: plt.Line2D) -> None:
+        line.remove()
+        self.time_plot.draw()
+
     def populate_file_list(self):
         dir = Path(self.file_dir)
         extension_regexp = re.compile(r'.*\.(mat|txt|bin)$')
@@ -433,47 +445,136 @@ class StimPulseWindow(QtWidgets.QMainWindow):
         self.setWindowTitle('Stimulus pulse')
         self.recording = None
         self.template_length = 15
+        self.start_markers: plt.Line2D = None
+        self.end_markers = None
 
-        self.stim_pulse_plot = MplCanvas(self, width=5, height=4, dpi=100)
-        self.toolbar = NavigationToolbar(self.stim_pulse_plot, self)
+        self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
+        # self.toolbar = NavigationToolbar(self.canvas, self)
+
+        template_start_area = QtWidgets.QHBoxLayout()
+        self.start_type = QtWidgets.QComboBox()
+        self.start_type.insertItems(0, ['From data', 'Offset'])
+        self.start_input = QtWidgets.QLineEdit()
+        self.start_input.setEnabled(False)
+        self.toggle_start_button = QtWidgets.QPushButton(
+            'Show on main plot')
+        self.toggle_start_button.clicked.connect(
+            self.toggle_start_on_main_plot)
+        template_start_area.addWidget(QtWidgets.QLabel('Template start'))
+        template_start_area.addWidget(self.start_type)
+        template_start_area.addWidget(self.start_input)
+        template_start_area.addWidget(self.toggle_start_button)
+
+        template_end_area = QtWidgets.QHBoxLayout()
+        self.end_type = QtWidgets.QComboBox()
+        self.end_type.insertItems(0, ['Fixed length', 'From data'])
+        self.end_input = QtWidgets.QLineEdit()
+        self.end_input.setText(str(self.template_length))
+        self.end_input.editingFinished.connect(self.update_template_length)
+        self.toggle_end_button = QtWidgets.QPushButton(
+            'Show on main plot')
+        self.toggle_end_button.clicked.connect(
+            self.toggle_end_on_main_plot)
+        template_end_area.addWidget(QtWidgets.QLabel('Template end'))
+        template_end_area.addWidget(self.end_type)
+        template_end_area.addWidget(self.end_input)
+        template_end_area.addWidget(self.toggle_end_button)
+
+        channel_select_area = QtWidgets.QHBoxLayout()
+        self.selected_channel = QtWidgets.QComboBox()
+        self.selected_channel.insertItems(0, ['All', 'Mean'])
+        self.selected_channel.currentIndexChanged.connect(self.update_display)
+        channel_select_area.addWidget(QtWidgets.QLabel('Selected channel'))
+        channel_select_area.addWidget(self.selected_channel)
 
         plot_area = QtWidgets.QVBoxLayout()
-        plot_area.addWidget(self.toolbar)
-        plot_area.addWidget(self.stim_pulse_plot)
+        plot_area.addLayout(template_start_area)
+        plot_area.addLayout(template_end_area)
+        plot_area.addLayout(channel_select_area)
+        # plot_area.addWidget(self.toolbar)
+        plot_area.addWidget(self.canvas)
 
         widget = QtWidgets.QWidget()
         widget.setLayout(plot_area)
 
         self.setCentralWidget(widget)
 
+    def update_template_length(self):
+        try:
+            new_length = int(self.end_input.text())
+            self.template_length = new_length
+            template_length_seconds = self.template_length * self.recording.dt
+            self.update_display()
+            if self.end_markers is not None:
+                self.parent().hide_time_points(self.end_markers)
+                points = [e[0] + template_length_seconds
+                          for e in self.recording.pulse_periods]
+                self.end_markers = self.parent().display_time_points(
+                    points, 'red')
+        except ValueError:
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Critical)
+            msg.setText('Error')
+            msg.setInformativeText('Template length must be an int')
+            msg.setWindowTitle('Error')
+            msg.exec()
+
+    def toggle_markers(self, points, color, line, button):
+        if line is None:
+            line = self.parent().display_time_points(points, color)
+            button.setText('Hide on main plot')
+        else:
+            self.parent().hide_time_points(line)
+            line = None
+            button.setText('Show on main plot')
+        return line
+
+    def toggle_start_on_main_plot(self):
+        points = [e[0] for e in self.recording.pulse_periods]
+        self.start_markers = self.toggle_markers(points, 'green',
+                                                 self.start_markers,
+                                                 self.toggle_start_button)
+
+    def toggle_end_on_main_plot(self):
+        if self.recording is not None:
+            template_length_seconds = self.template_length * self.recording.dt
+            points = [e[0] + template_length_seconds
+                      for e in self.recording.pulse_periods]
+            self.end_markers = self.toggle_markers(points, 'red',
+                                                   self.end_markers,
+                                                   self.toggle_end_button)
+
     def update_display(self):
-        self.stim_pulse_plot.axes.cla()
+        self.canvas.axes.cla()
 
         plot_title = self.parent().get_current_filename()
-        if (self.recording is not None and
-                self.recording.filename == plot_title):
+        if self.recording is None:
+            self.plot_message_center('No Recording')
+        elif self.recording.filename != plot_title:
+            self.plot_message_center('Filename does not match the Recording')
+        else:
             if len(self.recording.pulse_periods) == 0:
                 self.plot_message_center('No stim in this file')
             else:
+                channels = self.selected_channel.currentText().lower()
                 template = process.create_pulse_template(self.recording,
                                                          self.template_length,
-                                                         channels='all')
+                                                         channels=channels)
                 if len(template.shape) == 1:
-                    self.stim_pulse_plot.axes.plot(template)
+                    self.canvas.axes.plot(template)
                 else:
                     for i in range(template.shape[0]):
-                        self.stim_pulse_plot.axes.plot(template[i, :])
-        elif self.recording is not None:
-            print('ERROR: Data does not match the filename')
-        self.stim_pulse_plot.axes.set_title(plot_title)
-        self.stim_pulse_plot.draw()
-        self.stim_pulse_plot.flush_events()
+                        self.canvas.axes.plot(template[i, :])
+                    self.canvas.axes.legend(range(1, template.shape[0] + 1))
+
+        self.canvas.axes.set_title(plot_title)
+        self.canvas.draw()
+        self.canvas.flush_events()
 
     def plot_message_center(self, text: str) -> None:
-        self.stim_pulse_plot.axes.set_xlim([0, 1])
-        self.stim_pulse_plot.axes.set_ylim([0, 1])
-        self.stim_pulse_plot.axes.text(0.5, 0.5, text,
-                                       ha='center', va='center')
+        self.canvas.axes.set_xlim([0, 1])
+        self.canvas.axes.set_ylim([0, 1])
+        self.canvas.axes.text(0.5, 0.5, text, ha='center', va='center')
 
     def set_recording(self, data: ingest.Recording) -> None:
         self.recording = data
