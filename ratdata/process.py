@@ -178,6 +178,7 @@ def print_mean_and_percentile(intro_string: str, data: np.ndarray) -> None:
 
 def create_pulse_template(rec: ingest.Recording,
                           template_length: int = None,
+                          start_offset: int = 0,
                           channels: str = 'mean') -> np.ndarray:
     fs = int(1 / rec.dt)
     if template_length is None:
@@ -197,7 +198,7 @@ def create_pulse_template(rec: ingest.Recording,
     template = np.zeros((n_channels, template_length))
     if len(rec.pulse_periods) > 0:
         for s, e in rec.pulse_periods:
-            s_n = int(s * fs)
+            s_n = int(s * fs) + start_offset
             e_n = s_n + template_length
             if e_n < n_samples:
                 for i in range(n_channels):

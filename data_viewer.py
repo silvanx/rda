@@ -445,6 +445,7 @@ class StimPulseWindow(QtWidgets.QMainWindow):
         self.setWindowTitle('Stimulus pulse')
         self.recording = None
         self.template_length = 15
+        self.start_offset = 0
         self.start_markers: plt.Line2D = None
         self.end_markers = None
 
@@ -453,9 +454,10 @@ class StimPulseWindow(QtWidgets.QMainWindow):
 
         template_start_area = QtWidgets.QHBoxLayout()
         self.start_type = QtWidgets.QComboBox()
-        self.start_type.insertItems(0, ['From data', 'Offset'])
+        self.start_type.insertItems(0, ['From data'])
         self.start_input = QtWidgets.QLineEdit()
-        self.start_input.setEnabled(False)
+        self.start_input.setText(str(self.start_offset))
+        self.start_input.editingFinished.connect(self.update_start_offset)
         self.toggle_start_button = QtWidgets.QPushButton(
             'Show on main plot')
         self.toggle_start_button.clicked.connect(
@@ -499,25 +501,44 @@ class StimPulseWindow(QtWidgets.QMainWindow):
 
         self.setCentralWidget(widget)
 
+    def error_box(text: str):
+        msg = QtWidgets.QMessageBox()
+        msg.setIcon(QtWidgets.QMessageBox.Critical)
+        msg.setText('Error')
+        msg.setInformativeText(text)
+        msg.setWindowTitle('Error')
+        msg.exec()
+
+    def update_start_offset(self):
+        try:
+            new_offset = int(self.start_input.text())
+            self.start_offset = new_offset
+            offset_length_seconds = self.start_offset * self.recording.dt
+            self.update_display()
+            if self.start_markers is not None:
+                self.parent().hide_time_points(self.start_markers)
+                points = [e[0] + offset_length_seconds
+                          for e in self.recording.pulse_periods]
+                self.start_markers = self.parent().display_time_points(
+                    points, 'green')
+        except ValueError:
+            self.error_box('Start offset must be integer')
+
     def update_template_length(self):
         try:
             new_length = int(self.end_input.text())
             self.template_length = new_length
-            template_length_seconds = self.template_length * self.recording.dt
+            end_offset = (self.start_offset + self.template_length)\
+                * self.recording.dt
             self.update_display()
             if self.end_markers is not None:
                 self.parent().hide_time_points(self.end_markers)
-                points = [e[0] + template_length_seconds
+                points = [e[0] + end_offset
                           for e in self.recording.pulse_periods]
                 self.end_markers = self.parent().display_time_points(
                     points, 'red')
         except ValueError:
-            msg = QtWidgets.QMessageBox()
-            msg.setIcon(QtWidgets.QMessageBox.Critical)
-            msg.setText('Error')
-            msg.setInformativeText('Template length must be an int')
-            msg.setWindowTitle('Error')
-            msg.exec()
+            self.error_box('Template length must be integer')
 
     def toggle_markers(self, points, color, line, button):
         if line is None:
@@ -530,19 +551,25 @@ class StimPulseWindow(QtWidgets.QMainWindow):
         return line
 
     def toggle_start_on_main_plot(self):
-        points = [e[0] for e in self.recording.pulse_periods]
+        if self.recording is None:
+            return
+        start_offset_seconds = self.start_offset * self.recording.dt
+        points = [e[0] + start_offset_seconds
+                  for e in self.recording.pulse_periods]
         self.start_markers = self.toggle_markers(points, 'green',
                                                  self.start_markers,
                                                  self.toggle_start_button)
 
     def toggle_end_on_main_plot(self):
-        if self.recording is not None:
-            template_length_seconds = self.template_length * self.recording.dt
-            points = [e[0] + template_length_seconds
-                      for e in self.recording.pulse_periods]
-            self.end_markers = self.toggle_markers(points, 'red',
-                                                   self.end_markers,
-                                                   self.toggle_end_button)
+        if self.recording is None:
+            return
+        end_offset = (self.start_offset + self.template_length)\
+            * self.recording.dt
+        points = [e[0] + end_offset
+                  for e in self.recording.pulse_periods]
+        self.end_markers = self.toggle_markers(points, 'red',
+                                               self.end_markers,
+                                               self.toggle_end_button)
 
     def update_display(self):
         self.canvas.axes.cla()
@@ -559,6 +586,7 @@ class StimPulseWindow(QtWidgets.QMainWindow):
                 channels = self.selected_channel.currentText().lower()
                 template = process.create_pulse_template(self.recording,
                                                          self.template_length,
+                                                         self.start_offset,
                                                          channels=channels)
                 if len(template.shape) == 1:
                     self.canvas.axes.plot(template)
