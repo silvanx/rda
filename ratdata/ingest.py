@@ -17,6 +17,15 @@ class Recording:
     recording_type: str = None
     stim_periods: tuple = ()
     pulse_periods: tuple = ()
+    _slice: tuple[float, float] = None
+
+    @property
+    def slice(self) -> tuple[float, float]:
+        return self._slice
+
+    @slice.setter
+    def slice(self, s: tuple[float, float]) -> None:
+        self._slice = s
 
 
 def extract_info_from_filename(filename: str) -> tuple[str, str, str]:

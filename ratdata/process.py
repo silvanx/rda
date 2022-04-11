@@ -176,29 +176,47 @@ def print_mean_and_percentile(intro_string: str, data: np.ndarray) -> None:
     print('%s: %.2f uA, p10: %.2f, p20: %.2f' % (intro_string, mean, p10, p20))
 
 
+def pulses_in_slice(p: tuple[float, float], fs: int,
+                    slice_start: int, slice_end: int) -> bool:
+    return p[0] * fs > slice_start and p[1] * fs < slice_end
+
+
 def create_pulse_template(rec: ingest.Recording,
                           template_length: int = None,
                           start_offset: int = 0,
+                          slice: tuple[float, float] = None,
                           channels: str = 'mean') -> np.ndarray:
     fs = int(1 / rec.dt)
+    if slice is None:
+        slice_start = 0
+        slice_end = rec.electrode_data.shape[1]
+    else:
+        slice_start = int(slice[0] * fs)
+        slice_end = int(slice[1] * fs)
+
     if template_length is None:
         longest_pulse = max(rec.pulse_periods,
                             key=lambda item: item[1] - item[0])
         template_length = int((longest_pulse[1] - longest_pulse[0]) * fs)
 
     if channels == 'mean':
-        prepared_data = np.mean(rec.electrode_data, axis=0)
+        prepared_data = np.mean(rec.electrode_data,
+                                axis=0)[slice_start:slice_end]
     elif channels == 'all':
-        prepared_data = rec.electrode_data
+        prepared_data = rec.electrode_data[:, slice_start:slice_end]
+
+    pulses = list(filter(lambda p: pulses_in_slice(p, fs,
+                                                   slice_start, slice_end),
+                         rec.pulse_periods))
 
     n_channels = prepared_data.shape[0] if\
         len(prepared_data.shape) == 2 else 1
     n_samples = prepared_data.shape[1] if\
         len(prepared_data.shape) == 2 else len(prepared_data)
     template = np.zeros((n_channels, template_length))
-    if len(rec.pulse_periods) > 0:
-        for s, e in rec.pulse_periods:
-            s_n = int(s * fs) + start_offset
+    if len(pulses) > 0:
+        for s, e in pulses:
+            s_n = int(s * fs) - slice_start + start_offset
             e_n = s_n + template_length
             if e_n < n_samples:
                 for i in range(n_channels):
@@ -206,7 +224,7 @@ def create_pulse_template(rec: ingest.Recording,
                         template[i, :] += prepared_data[i, s_n: e_n]
                     else:
                         template[i, :] += prepared_data[s_n: e_n]
-        template /= len(rec.pulse_periods)
+        template /= len(pulses)
     if template.shape[0] == 1:
         template = template.flatten()
     return template

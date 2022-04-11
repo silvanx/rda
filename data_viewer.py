@@ -235,6 +235,7 @@ class MainWindow(QtWidgets.QMainWindow):
         file = Path(filename)
         if re.match(r'^\.mat$', file.suffix):
             data = ingest.read_mce_matlab_file(filename)
+            data.slice = dm.get_recording_slice(file.name)
             samples = data.electrode_data.shape[1]
             tt = np.linspace(0, samples * data.dt, samples)
             x = np.mean(data.electrode_data, 0)
@@ -563,20 +564,36 @@ class StimPulseWindow(QtWidgets.QMainWindow):
     def toggle_start_on_main_plot(self):
         if self.recording is None:
             raise AttributeError
+        if self.recording.slice is not None:
+            slice_start = self.recording.slice[0]
+            slice_end = self.recording.slice[1]
+        else:
+            slice_start = 0
+            slice_end = self.recording.electrode_data.shape[1]\
+                * self.recording.dt
         start_offset_seconds = self.start_offset * self.recording.dt
         points = [e[0] + start_offset_seconds
-                  for e in self.recording.pulse_periods]
+                  for e in self.recording.pulse_periods
+                  if slice_start <= e[0] + start_offset_seconds <= slice_end]
         self.start_markers = self.toggle_markers(points, 'green',
                                                  self.start_markers,
                                                  self.toggle_start_button)
 
     def toggle_end_on_main_plot(self):
         if self.recording is None:
-            return
+            raise AttributeError
+        if self.recording.slice is not None:
+            slice_start = self.recording.slice[0]
+            slice_end = self.recording.slice[1]
+        else:
+            slice_start = 0
+            slice_end = self.recording.electrode_data.shape[1]\
+                * self.recording.dt
         end_offset = (self.start_offset + self.template_length)\
             * self.recording.dt
         points = [e[0] + end_offset
-                  for e in self.recording.pulse_periods]
+                  for e in self.recording.pulse_periods
+                  if slice_start <= e[0] + end_offset <= slice_end]
         self.end_markers = self.toggle_markers(points, 'red',
                                                self.end_markers,
                                                self.toggle_end_button)
@@ -594,9 +611,11 @@ class StimPulseWindow(QtWidgets.QMainWindow):
                 self.plot_message_center('No stim in this file')
             else:
                 channels = self.selected_channel.currentText().lower()
+                slice = self.recording.slice
                 template = process.create_pulse_template(self.recording,
                                                          self.template_length,
                                                          self.start_offset,
+                                                         slice=slice,
                                                          channels=channels)
                 if len(template.shape) == 1:
                     self.canvas.axes.plot(template)

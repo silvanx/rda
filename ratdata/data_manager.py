@@ -269,6 +269,16 @@ def get_condition_labels() -> list[str]:
     return result
 
 
+def get_recording_slice(filename: str) -> tuple[float, float]:
+    query = RecordingSlice.select().join(RecordingFile)\
+        .where(RecordingFile.filename == filename)
+    if query.count() == 1:
+        slice = query.get()
+        return (slice.start, slice.start + slice.length)
+    else:
+        return None
+
+
 def upsert_power_record(f: ingest.Recording, recording_beta_power: float,
                         recording_total_power: float) -> int:
     q = RecordingPower.select().join(RecordingFile)\
