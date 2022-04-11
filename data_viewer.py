@@ -213,6 +213,10 @@ class MainWindow(QtWidgets.QMainWindow):
             text = item.text()
             self.current_file = self.file_list.index(text)
             filename = self.file_dir + '/' + self.file_list[self.current_file]
+            if self.stim_pulse_window.start_markers is not None:
+                self.stim_pulse_window.toggle_start_on_main_plot()
+            if self.stim_pulse_window.end_markers is not None:
+                self.stim_pulse_window.toggle_end_on_main_plot()
             self.subtract_pulse = False
             self.plot_data_from_file(filename)
 
@@ -222,6 +226,10 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.current_file = (self.current_file + 1) % len(self.file_list)
         filename = self.file_dir + '/' + self.file_list[self.current_file]
+        if self.stim_pulse_window.start_markers is not None:
+            self.stim_pulse_window.toggle_start_on_main_plot()
+        if self.stim_pulse_window.end_markers is not None:
+            self.stim_pulse_window.toggle_end_on_main_plot()
         self.subtract_pulse = False
         self.plot_data_from_file(filename)
         self.file_list_widget.setCurrentRow(self.current_file)
@@ -232,6 +240,10 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.current_file = (self.current_file - 1) % len(self.file_list)
         filename = self.file_dir + '/' + self.file_list[self.current_file]
+        if self.stim_pulse_window.start_markers is not None:
+            self.stim_pulse_window.toggle_start_on_main_plot()
+        if self.stim_pulse_window.end_markers is not None:
+            self.stim_pulse_window.toggle_end_on_main_plot()
         self.subtract_pulse = False
         self.plot_data_from_file(filename)
         self.file_list_widget.setCurrentRow(self.current_file)
@@ -675,7 +687,7 @@ class StimPulseWindow(QtWidgets.QMainWindow):
 
     def set_recording(self, data: ingest.Recording) -> None:
         self.recording = data
-        data.filename = str(pathlib.Path(data.filename).stem)
+        self.recording.filename = str(pathlib.Path(data.filename).stem)
 
     def subtract_current_template(self):
         if self.recording is None:
