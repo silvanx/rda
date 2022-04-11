@@ -30,11 +30,12 @@ class MplCanvas(FigureCanvasQTAgg):
 class PulseTemplate:
 
     def __init__(self, length: int, channels: int, template: np.ndarray,
-                 start: list[int]) -> None:
+                 start: list[int], align: str) -> None:
         self.length: int = length
         self.channels: int = channels
         self.template: np.ndarray = template
         self.start: list[int] = start
+        self.align: str = align
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -487,6 +488,7 @@ class StimPulseWindow(QtWidgets.QMainWindow):
         self.setWindowTitle('Stimulus pulse')
         self.recording = None
         self.template_length = 15
+        self.template_align = 'max'
         self.start_offset = 0
         self.start_markers: plt.Line2D = None
         self.end_markers = None
@@ -674,9 +676,11 @@ class StimPulseWindow(QtWidgets.QMainWindow):
                     channels = self.selected_channel.currentText().lower()
                     slice = self.recording.slice
                     t_length = self.template_length
+                    align = self.template_align
                     template = process.create_pulse_template(self.recording,
                                                              t_length,
                                                              self.start_offset,
+                                                             align=align,
                                                              slice=slice,
                                                              channels=channels)
                     if len(template.shape) == 1:
@@ -696,6 +700,11 @@ class StimPulseWindow(QtWidgets.QMainWindow):
                                 continue
                             s = int(p[0] * fs) + self.start_offset
                             e = s + self.template_length
+                            if self.template_align == 'max':
+                                max_location = np.argmax(d[s:e])
+                                s = s + max_location\
+                                    - int(np.floor(self.template_length / 2))
+                                e = s + self.template_length
                             self.canvas.axes.plot(d[s:e], color='grey',
                                                   linewidth=0.7)
         self.canvas.axes.set_title(plot_title)
@@ -725,7 +734,7 @@ class StimPulseWindow(QtWidgets.QMainWindow):
         elif self.selected_channel.currentText().lower() == 'all':
             channels = self.recording.electrode_data.shape[0]
         template = PulseTemplate(self.template_length, channels,
-                                 self.template, start)
+                                 self.template, start, self.template_align)
         self.parent().subtract_template(template)
 
 
