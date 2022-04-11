@@ -27,15 +27,26 @@ class MplCanvas(FigureCanvasQTAgg):
         super(MplCanvas, self).__init__(self.fig)
 
 
+class PulseTemplate:
+
+    def __init__(self, length: int, channels: int, template: np.ndarray,
+                 start: list[int]) -> None:
+        self.length: int = length
+        self.channels: int = channels
+        self.template: np.ndarray = template
+        self.start: list[int] = start
+
+
 class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
 
         self.file_dir = 'data/mce_recordings'
+        self.time_slices_file = Path(self.file_dir) / 'time_slices.pickle'
         self.db_file = 'rat_data.db'
 
-        dm.db_connect('rat_data.db')
+        dm.db_connect(self.db_file)
 
         self.current_file = None
         self.rat_selected = None
@@ -51,11 +62,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.all_stims = [None, 'nostim', 'continuous', 'on-off',
         #                   'random', 'proportional']
 
-        self.time_slices_file = Path(self.file_dir) / 'time_slices.pickle'
         self.time_slices = ingest.read_file_slices(self.time_slices_file)
 
         self.time_plot = MplCanvas(self, width=5, height=4, dpi=100)
         self.psd_plot = MplCanvas(self, width=5, height=3, dpi=100)
+
+        self.pulse_template = None
+        self.subtract_pulse = False
 
         # Matplotlib edit toolbar
         toolbar = NavigationToolbar(self.time_plot, self)
@@ -200,6 +213,7 @@ class MainWindow(QtWidgets.QMainWindow):
             text = item.text()
             self.current_file = self.file_list.index(text)
             filename = self.file_dir + '/' + self.file_list[self.current_file]
+            self.subtract_pulse = False
             self.plot_data_from_file(filename)
 
     def plot_next_file(self):
@@ -208,6 +222,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.current_file = (self.current_file + 1) % len(self.file_list)
         filename = self.file_dir + '/' + self.file_list[self.current_file]
+        self.subtract_pulse = False
         self.plot_data_from_file(filename)
         self.file_list_widget.setCurrentRow(self.current_file)
 
@@ -217,6 +232,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.current_file = (self.current_file - 1) % len(self.file_list)
         filename = self.file_dir + '/' + self.file_list[self.current_file]
+        self.subtract_pulse = False
         self.plot_data_from_file(filename)
         self.file_list_widget.setCurrentRow(self.current_file)
 
@@ -238,7 +254,13 @@ class MainWindow(QtWidgets.QMainWindow):
             data.slice = dm.get_recording_slice(file.name)
             samples = data.electrode_data.shape[1]
             tt = np.linspace(0, samples * data.dt, samples)
-            x = np.mean(data.electrode_data, 0)
+            if self.subtract_pulse:
+                x = process.subtract_template(data.electrode_data,
+                                              self.pulse_template)
+            else:
+                x = data.electrode_data
+            if len(x.shape) > 1:
+                x = np.mean(x, 0)
             self.stim_pulse_window.set_recording(data)
             self.update_plot(tt, x, file)
 
@@ -437,6 +459,13 @@ class MainWindow(QtWidgets.QMainWindow):
             return ''
         return self.file_list[self.current_file].split('.')[0]
 
+    def subtract_template(self, template: PulseTemplate) -> None:
+        self.pulse_template = template
+        self.subtract_pulse = True
+        filename = Path(self.file_list[self.current_file])
+        full_filename = Path(self.file_dir) / filename.name
+        self.plot_data_from_file(full_filename)
+
 
 class StimPulseWindow(QtWidgets.QMainWindow):
 
@@ -449,6 +478,7 @@ class StimPulseWindow(QtWidgets.QMainWindow):
         self.start_offset = 0
         self.start_markers: plt.Line2D = None
         self.end_markers = None
+        self.template = np.zeros(self.template_length)
 
         self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
         # self.toolbar = NavigationToolbar(self.canvas, self)
@@ -493,12 +523,21 @@ class StimPulseWindow(QtWidgets.QMainWindow):
                                       stretch=2)
         channel_select_area.addWidget(self.selected_channel, stretch=3)
 
+        subtract_template_area = QtWidgets.QHBoxLayout()
+        self.subtract_template_button = QtWidgets.QPushButton()
+        self.subtract_template_button.setText("Subtract template")
+        self.subtract_template_button.clicked.connect(
+            self.subtract_current_template)
+        subtract_template_area.addWidget(self.subtract_template_button,
+                                         stretch=5)
+
         plot_area = QtWidgets.QVBoxLayout()
         plot_area.addLayout(template_start_area)
         plot_area.addLayout(template_end_area)
         plot_area.addLayout(channel_select_area)
         # plot_area.addWidget(self.toolbar)
         plot_area.addWidget(self.canvas)
+        plot_area.addLayout(subtract_template_area)
 
         widget = QtWidgets.QWidget()
         widget.setLayout(plot_area)
@@ -623,6 +662,7 @@ class StimPulseWindow(QtWidgets.QMainWindow):
                     for i in range(template.shape[0]):
                         self.canvas.axes.plot(template[i, :])
                     self.canvas.axes.legend(range(1, template.shape[0] + 1))
+                self.template = template
 
         self.canvas.axes.set_title(plot_title)
         self.canvas.draw()
@@ -636,6 +676,23 @@ class StimPulseWindow(QtWidgets.QMainWindow):
     def set_recording(self, data: ingest.Recording) -> None:
         self.recording = data
         data.filename = str(pathlib.Path(data.filename).stem)
+
+    def subtract_current_template(self):
+        if self.recording is None:
+            self.error_box("No recording selected")
+            return
+        elif len(self.recording.pulse_periods) == 0:
+            self.error_box("No stimulation in this recording")
+            return
+        start = [int(e[0] / self.recording.dt) + self.start_offset
+                 for e in self.recording.pulse_periods]
+        if self.selected_channel.currentText().lower() == 'mean':
+            channels = 1
+        elif self.selected_channel.currentText().lower() == 'all':
+            channels = self.recording.electrode_data.shape[0]
+        template = PulseTemplate(self.template_length, channels,
+                                 self.template, start)
+        self.parent().subtract_template(template)
 
 
 if __name__ == '__main__':

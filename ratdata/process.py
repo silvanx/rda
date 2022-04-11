@@ -228,3 +228,18 @@ def create_pulse_template(rec: ingest.Recording,
     if template.shape[0] == 1:
         template = template.flatten()
     return template
+
+
+def subtract_template(data, template):
+    if template.channels == 1:
+        data = np.mean(data, axis=0)
+        for s in template.start:
+            e = s + template.length
+            if e < len(data):
+                data[s:e] -= template.template
+    elif template.channels > 1:
+        for s in template.start:
+            e = s + template.length
+            if e < data.shape[1]:
+                data[:, s:e] -= template.template
+    return data
