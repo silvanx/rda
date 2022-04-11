@@ -493,7 +493,7 @@ class StimPulseWindow(QtWidgets.QMainWindow):
         self.template = np.zeros(self.template_length)
 
         self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
-        # self.toolbar = NavigationToolbar(self.canvas, self)
+        self.toolbar = NavigationToolbar(self.canvas, self)
 
         template_start_area = QtWidgets.QHBoxLayout()
         self.start_type = QtWidgets.QComboBox()
@@ -535,6 +535,14 @@ class StimPulseWindow(QtWidgets.QMainWindow):
                                       stretch=2)
         channel_select_area.addWidget(self.selected_channel, stretch=3)
 
+        pulse_select_area = QtWidgets.QHBoxLayout()
+        self.selected_pulse = QtWidgets.QComboBox()
+        self.selected_pulse.insertItems(0, ['Mean', 'All'])
+        self.selected_pulse.currentIndexChanged.connect(self.update_display)
+        pulse_select_area.addWidget(QtWidgets.QLabel('Selected pulses'),
+                                    stretch=2)
+        pulse_select_area.addWidget(self.selected_pulse, stretch=3)
+
         subtract_template_area = QtWidgets.QHBoxLayout()
         self.subtract_template_button = QtWidgets.QPushButton()
         self.subtract_template_button.setText("Subtract template")
@@ -547,7 +555,8 @@ class StimPulseWindow(QtWidgets.QMainWindow):
         plot_area.addLayout(template_start_area)
         plot_area.addLayout(template_end_area)
         plot_area.addLayout(channel_select_area)
-        # plot_area.addWidget(self.toolbar)
+        plot_area.addLayout(pulse_select_area)
+        plot_area.addWidget(self.toolbar)
         plot_area.addWidget(self.canvas)
         plot_area.addLayout(subtract_template_area)
 
@@ -661,21 +670,34 @@ class StimPulseWindow(QtWidgets.QMainWindow):
             if len(self.recording.pulse_periods) == 0:
                 self.plot_message_center('No stim in this file')
             else:
-                channels = self.selected_channel.currentText().lower()
-                slice = self.recording.slice
-                template = process.create_pulse_template(self.recording,
-                                                         self.template_length,
-                                                         self.start_offset,
-                                                         slice=slice,
-                                                         channels=channels)
-                if len(template.shape) == 1:
-                    self.canvas.axes.plot(template)
-                else:
-                    for i in range(template.shape[0]):
-                        self.canvas.axes.plot(template[i, :])
-                    self.canvas.axes.legend(range(1, template.shape[0] + 1))
-                self.template = template
-
+                if self.selected_pulse.currentText() == 'Mean':
+                    channels = self.selected_channel.currentText().lower()
+                    slice = self.recording.slice
+                    t_length = self.template_length
+                    template = process.create_pulse_template(self.recording,
+                                                             t_length,
+                                                             self.start_offset,
+                                                             slice=slice,
+                                                             channels=channels)
+                    if len(template.shape) == 1:
+                        self.canvas.axes.plot(template)
+                    else:
+                        for i in range(template.shape[0]):
+                            self.canvas.axes.plot(template[i, :])
+                        self.canvas.axes.legend(range(1, template.shape[0]+1))
+                    self.template = template
+                elif self.selected_pulse.currentText() == 'All':
+                    d = np.mean(self.recording.electrode_data, axis=0)
+                    fs = int(1/self.recording.dt)
+                    for i, p in enumerate(self.recording.pulse_periods):
+                        if i % 10 == 0:
+                            if (p[0] < self.recording.slice[0] or
+                                    p[1] > self.recording.slice[1]):
+                                continue
+                            s = int(p[0] * fs) + self.start_offset
+                            e = s + self.template_length
+                            self.canvas.axes.plot(d[s:e], color='grey',
+                                                  linewidth=0.7)
         self.canvas.axes.set_title(plot_title)
         self.canvas.draw()
         self.canvas.flush_events()
