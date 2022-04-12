@@ -477,6 +477,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.subtract_pulse = True
         filename = Path(self.file_list[self.current_file])
         full_filename = Path(self.file_dir) / filename.name
+        if self.stim_pulse_window.start_markers is not None:
+            self.stim_pulse_window.toggle_start_on_main_plot()
+        if self.stim_pulse_window.end_markers is not None:
+            self.stim_pulse_window.toggle_end_on_main_plot()
         self.plot_data_from_file(full_filename)
 
 
@@ -497,9 +501,17 @@ class StimPulseWindow(QtWidgets.QMainWindow):
         self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
         self.toolbar = NavigationToolbar(self.canvas, self)
 
+        template_align_area = QtWidgets.QHBoxLayout()
+        self.align_method = QtWidgets.QComboBox()
+        self.align_method.insertItems(0, ['Max', 'Start'])
+        self.align_method.currentIndexChanged.connect(
+            self.update_template_align)
+        template_align_area.addWidget(QtWidgets.QLabel('Template alignment:'))
+        template_align_area.addWidget(self.align_method)
+
         template_start_area = QtWidgets.QHBoxLayout()
         self.start_type = QtWidgets.QComboBox()
-        self.start_type.insertItems(0, ['From data'])
+        self.start_type.insertItems(0, ['From data with offset'])
         self.start_input = QtWidgets.QLineEdit()
         self.start_input.setText(str(self.start_offset))
         self.start_input.editingFinished.connect(self.update_start_offset)
@@ -554,6 +566,7 @@ class StimPulseWindow(QtWidgets.QMainWindow):
                                          stretch=5)
 
         plot_area = QtWidgets.QVBoxLayout()
+        plot_area.addLayout(template_align_area)
         plot_area.addLayout(template_start_area)
         plot_area.addLayout(template_end_area)
         plot_area.addLayout(channel_select_area)
@@ -574,6 +587,10 @@ class StimPulseWindow(QtWidgets.QMainWindow):
         msg.setInformativeText(text)
         msg.setWindowTitle('Error')
         msg.exec()
+
+    def update_template_align(self):
+        self.template_align = self.align_method.currentText().lower()
+        self.update_display()
 
     def update_start_offset(self):
         try:

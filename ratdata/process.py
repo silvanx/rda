@@ -2,7 +2,6 @@ import scipy.signal as signal
 import scipy.integrate as integrate
 import numpy as np
 from ratdata import data_manager as dm, ingest
-import matplotlib.pyplot as plt
 
 
 def compute_power_in_frequency_band(data: np.ndarray, low: int, high: int,
@@ -216,25 +215,38 @@ def create_pulse_template(rec: ingest.Recording,
     n_samples = prepared_data.shape[1] if\
         len(prepared_data.shape) == 2 else len(prepared_data)
     template = np.zeros((n_channels, template_length))
+    skipped_pulses = 0
     if len(pulses) > 0:
         for s, e in pulses:
-            s_n = int(s * fs) - slice_start + start_offset
-            e_n = s_n + template_length
-            if e_n < n_samples:
-                for i in range(n_channels):
-                    if n_channels > 1:
-                        if align == 'max':
-                            max_location = np.argmax(prepared_data[i, s_n:e_n])
-                            s_n = s_n + max_location - int(np.floor(template_length / 2))
+            half_t_length = int(np.floor(template_length / 2))
+            for i in range(n_channels):
+                if n_channels > 1:
+                    s_n = int(s * fs) - slice_start + start_offset
+                    e_n = s_n + template_length
+                    if align == 'max':
+                        d = prepared_data[i, s_n:e_n]
+                        if len(d) > 0:
+                            max_location = np.argmax(d)
+                            s_n = s_n + max_location - half_t_length
                             e_n = s_n + template_length
-                        template[i, :] += prepared_data[i, s_n: e_n]
+                    if s_n < 0 or e_n > n_samples or s_n > n_samples:
+                        skipped_pulses += 1
                     else:
-                        if align == 'max':
-                            max_location = np.argmax(prepared_data[s_n:e_n])
-                            s_n = s_n + max_location - int(np.floor(template_length / 2))
+                        template[i, :] += prepared_data[i, s_n: e_n]
+                else:
+                    s_n = int(s * fs) - slice_start + start_offset
+                    e_n = s_n + template_length
+                    if align == 'max':
+                        d = prepared_data[s_n:e_n]
+                        if len(d) > 0:
+                            max_location = np.argmax(d)
+                            s_n = s_n + max_location - half_t_length
                             e_n = s_n + template_length
+                    if s_n < 0 or e_n > n_samples or s_n > n_samples:
+                        skipped_pulses += 1
+                    else:
                         template[i, :] += prepared_data[s_n: e_n]
-        template /= len(pulses)
+        template /= (len(pulses) - skipped_pulses)
     if template.shape[0] == 1:
         template = template.flatten()
     return template
@@ -242,26 +254,35 @@ def create_pulse_template(rec: ingest.Recording,
 
 def subtract_template(data, template):
     align = template.align
+    half_template_length = int(np.floor(template.length / 2))
     if template.channels == 1:
         data = np.mean(data, axis=0)
         for s in template.start:
             e = s + template.length
             if e < len(data):
                 if align == 'max':
-                    max_location = np.argmax(data[s:e])
-                    s = s + max_location - int(np.floor(template.length / 2))
-                    e = s + template.length
-                data[s:e] -= template.template
+                    d = data[s:e]
+                    if len(d) > 0:
+                        max_location = np.argmax(data[s:e])
+                        s_n = s + max_location - half_template_length
+                        e_n = s_n + template.length
+                    if s_n > 0 and e_n < len(data) and len(d) > 0:
+                        data[s_n:e_n] -= template.template
+                else:
+                    data[s:e] -= template.template
     elif template.channels > 1:
         for s in template.start:
             e = s + template.length
             if e < data.shape[1]:
                 if align == 'max':
                     for i in range(data.shape[0]):
-                        max_location = np.argmax(data[i, s:e])
-                        s = s + max_location - int(np.floor(template.length / 2))
-                        e = s + template.length
-                        data[i, s:e] -= template.template[i, :]
+                        d = data[i, s:e]
+                        if len(d) > 0:
+                            max_location = np.argmax(d)
+                            s_n = s + max_location - half_template_length
+                            e_n = s_n + template.length
+                        if s_n > 0 and e_n < data.shape[1] and len(d) > 0:
+                            data[i, s_n:e_n] -= template.template[i, :]
                 else:
                     data[:, s:e] -= template.template
     return data
