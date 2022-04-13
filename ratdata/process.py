@@ -1,5 +1,6 @@
 import scipy.signal as signal
 import scipy.integrate as integrate
+import scipy.interpolate as interpolate
 import numpy as np
 from ratdata import data_manager as dm, ingest
 
@@ -28,6 +29,41 @@ def bandpass_filter(data: np.ndarray, fs: int, lowcut: int,
     taps = signal.firwin(numtaps, (lo, hi), pass_zero='bandpass')
     filtered = signal.lfilter(taps, 1.0, data)
     return filtered
+
+
+def highpass_filter(data: np.ndarray, fs: int, cutoff: float,
+                    numtaps: int = 201) -> np.ndarray:
+    nyq = fs / 2
+    cutoff = cutoff / nyq
+    taps = signal.firwin(numtaps, cutoff, pass_zero='highpass')
+    filtered = signal.filtfilt(taps, 1.0, data)
+    return filtered
+
+
+def lowpass_filter(data: np.ndarray, fs: int, cutoff: float,
+                   numtaps: int = 201) -> np.ndarray:
+    nyq = fs / 2
+    cutoff = cutoff / nyq
+    taps = signal.firwin(numtaps, cutoff, pass_zero='lowpass')
+    filtered = signal.filtfilt(taps, 1.0, data)
+    return filtered
+
+
+def interpolated_highpass_filter(data: np.ndarray, fs: int, q: int,
+                                 cutoff: float,
+                                 numtaps: int = 201) -> np.ndarray:
+    low_fs = int(fs / q)
+    decimated = signal.decimate(data, q)
+    low = lowpass_filter(decimated, low_fs, cutoff, numtaps)
+    ttd = np.linspace(0, 1, low.shape[-1])
+    tt = np.linspace(0, 1, data.shape[-1])
+    if len(data.shape) == 1:
+        filtered = interpolate.interp1d(ttd, low)(tt)
+    else:
+        filtered = np.zeros(data.shape)
+        for i in range(data.shape[0]):
+            filtered[i, :] = interpolate.interp1d(ttd, low[i, :])(tt)
+    return data - filtered
 
 
 def compute_relative_power(data: np.ndarray, low: int, high: int,
@@ -186,7 +222,8 @@ def create_pulse_template(rec: ingest.Recording,
                           start_offset: int = 0,
                           align: str = 'start',
                           slice: tuple[float, float] = None,
-                          channels: str = 'mean') -> np.ndarray:
+                          channels: str = 'mean',
+                          highpass_cutoff: float = None) -> np.ndarray:
     fs = int(1 / rec.dt)
     if slice is None:
         slice_start = 0
@@ -205,6 +242,10 @@ def create_pulse_template(rec: ingest.Recording,
                                 axis=0)[slice_start:slice_end]
     elif channels == 'all':
         prepared_data = rec.electrode_data[:, slice_start:slice_end]
+
+    if highpass_cutoff is not None:
+        prepared_data = interpolated_highpass_filter(prepared_data, fs, 40,
+                                                     highpass_cutoff)
 
     pulses = list(filter(lambda p: pulses_in_slice(p, fs,
                                                    slice_start, slice_end),

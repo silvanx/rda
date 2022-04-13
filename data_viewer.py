@@ -494,12 +494,23 @@ class StimPulseWindow(QtWidgets.QMainWindow):
         self.template_length = 15
         self.template_align = 'max'
         self.start_offset = 0
+        self.highpass_cutoff = 1
         self.start_markers: plt.Line2D = None
         self.end_markers = None
         self.template = np.zeros(self.template_length)
 
         self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
         self.toolbar = NavigationToolbar(self.canvas, self)
+
+        highpass_filter_area = QtWidgets.QHBoxLayout()
+        highpass_filter_area.addWidget(QtWidgets.QLabel('Highpass filter:'))
+        self.highpass_filter_method = QtWidgets.QComboBox()
+        self.highpass_filter_method.insertItems(0, ['None',
+                                                    '1 Hz (interpolated)',
+                                                    '10 Hz (interpolated)'])
+        self.highpass_filter_method.currentIndexChanged.connect(
+            self.update_highpass_filter)
+        highpass_filter_area.addWidget(self.highpass_filter_method)
 
         template_align_area = QtWidgets.QHBoxLayout()
         self.align_method = QtWidgets.QComboBox()
@@ -566,6 +577,7 @@ class StimPulseWindow(QtWidgets.QMainWindow):
                                          stretch=5)
 
         plot_area = QtWidgets.QVBoxLayout()
+        plot_area.addLayout(highpass_filter_area)
         plot_area.addLayout(template_align_area)
         plot_area.addLayout(template_start_area)
         plot_area.addLayout(template_end_area)
@@ -590,6 +602,16 @@ class StimPulseWindow(QtWidgets.QMainWindow):
 
     def update_template_align(self):
         self.template_align = self.align_method.currentText().lower()
+        self.update_display()
+
+    def update_highpass_filter(self):
+        values = {
+            'None': None,
+            '1 Hz (interpolated)': 1,
+            '10 Hz (interpolated)': 10
+            }
+        selected = self.highpass_filter_method.currentText()
+        self.highpass_cutoff = values[selected]
         self.update_display()
 
     def update_start_offset(self):
@@ -694,12 +716,14 @@ class StimPulseWindow(QtWidgets.QMainWindow):
                     slice = self.recording.slice
                     t_length = self.template_length
                     align = self.template_align
+                    hi_cutoff = self.highpass_cutoff
                     template = process.create_pulse_template(self.recording,
                                                              t_length,
                                                              self.start_offset,
-                                                             align=align,
-                                                             slice=slice,
-                                                             channels=channels)
+                                                             align,
+                                                             slice,
+                                                             channels,
+                                                             hi_cutoff)
                     if len(template.shape) == 1:
                         self.canvas.axes.plot(template)
                     else:
@@ -717,13 +741,15 @@ class StimPulseWindow(QtWidgets.QMainWindow):
                                 continue
                             s = int(p[0] * fs) + self.start_offset
                             e = s + self.template_length
-                            if self.template_align == 'max':
+                            if (self.template_align == 'max' and
+                                    len(d[s:e]) > 0):
                                 max_location = np.argmax(d[s:e])
                                 s = s + max_location\
                                     - int(np.floor(self.template_length / 2))
                                 e = s + self.template_length
-                            self.canvas.axes.plot(d[s:e], color='grey',
-                                                  linewidth=0.7)
+                            if (s > 0 and e < len(d) and s < len(d)):
+                                self.canvas.axes.plot(d[s:e], color='grey',
+                                                      linewidth=0.6)
         self.canvas.axes.set_title(plot_title)
         self.canvas.draw()
         self.canvas.flush_events()
