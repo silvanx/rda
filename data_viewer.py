@@ -53,6 +53,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.rat_selected = None
         self.condition_selected = None
         self.stim_selected = None
+
+        self.oof_psd_visible = False
+
         self.file_list = self.populate_file_list()
 
         self.all_conditions = dm.get_condition_labels()
@@ -111,11 +114,31 @@ class MainWindow(QtWidgets.QMainWindow):
         time_plot_controls.addWidget(toolbar)
         time_plot_controls.addLayout(slice_selection)
 
+        # one-over-f component in PSD
+        psd_oof = QtWidgets.QHBoxLayout()
+        self.psd_oof_show = QtWidgets.QPushButton('Show')
+        self.psd_oof_show.clicked.connect(self.toggle_oof_psd)
+        self.oof_freq_low = QtWidgets.QLineEdit()
+        self.oof_freq_high = QtWidgets.QLineEdit()
+        self.oof_scale = QtWidgets.QLineEdit()
+        psd_oof.addWidget(QtWidgets.QLabel('1/f fitting: '))
+        psd_oof.addWidget(QtWidgets.QLabel('Low frequency:'))
+        psd_oof.addWidget(self.oof_freq_low)
+        psd_oof.addWidget(QtWidgets.QLabel('High frequency:'))
+        psd_oof.addWidget(self.oof_freq_high)
+        psd_oof.addWidget(QtWidgets.QLabel('Scale:'))
+        psd_oof.addWidget(self.oof_scale)
+        psd_oof.addWidget(self.psd_oof_show)
+
+        psd_plot_controls = QtWidgets.QHBoxLayout()
+        psd_plot_controls.addWidget(toolbar_psd)
+        psd_plot_controls.addLayout(psd_oof)
+
         # Plotting areas
         plot_area = QtWidgets.QVBoxLayout()
         plot_area.addLayout(time_plot_controls)
         plot_area.addWidget(self.time_plot)
-        plot_area.addWidget(toolbar_psd)
+        plot_area.addLayout(psd_plot_controls)
         plot_area.addWidget(self.psd_plot)
         plot_area.addLayout(nav_buttons)
 
@@ -176,6 +199,43 @@ class MainWindow(QtWidgets.QMainWindow):
         self.showMaximized()
 
         self.show()
+
+    def toggle_oof_psd(self):
+        self.oof_psd_visible = not self.oof_psd_visible
+        if self.oof_psd_visible:
+            self.show_oof_psd()
+            self.psd_oof_show.setText('Hide')
+        else:
+            self.hide_oof_psd()
+            self.psd_oof_show.setText('Show')
+
+    def hide_oof_psd(self):
+        ax = self.psd_plot.axes
+        n_plots = len(ax.lines)
+        if n_plots > 1:
+            for i in range(1, n_plots):
+                ax.lines[-1].remove()
+            ax.get_legend().remove()
+            self.psd_plot.draw()
+
+    def show_oof_psd(self):
+        f_min = 1
+        f_max = 50
+        scale = 0.8
+        if len(self.psd_plot.axes.lines) > 0:
+            current_psd_line = self.psd_plot.axes.lines[0]
+            f = current_psd_line._x
+            pxx = current_psd_line._y
+            idx = np.where((f >= f_min) & (f <= f_max))
+            m, b = np.polyfit(np.log(f[idx]), np.log(pxx[idx]), 1)
+            f[f == 0] = 0.000000001
+            fm = f ** m
+            oof = scale * (np.e**b * fm)
+            clean_pxx = pxx - oof
+            self.psd_plot.axes.plot(current_psd_line._x, oof)
+            self.psd_plot.axes.plot(current_psd_line._x, clean_pxx)
+            self.psd_plot.axes.legend(['PSD', '1/f', 'PSD-1/f'])
+            self.psd_plot.draw()
 
     def change_file_dir(self):
         newdir = QtWidgets.QFileDialog.getExistingDirectory()
