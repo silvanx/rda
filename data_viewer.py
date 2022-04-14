@@ -538,7 +538,9 @@ class StimPulseWindow(QtWidgets.QMainWindow):
 
         template_end_area = QtWidgets.QHBoxLayout()
         self.end_type = QtWidgets.QComboBox()
-        self.end_type.insertItems(0, ['Fixed length', 'From data'])
+        # self.end_type.insertItems(0, ['Fixed length', 'From data'])
+        # self.end_type.currentIndexChanged.connect(self.update_template_length)
+        self.end_type.insertItems(0, ['Fixed length'])
         self.end_input = QtWidgets.QLineEdit()
         self.end_input.setText(str(self.template_length))
         self.end_input.editingFinished.connect(self.update_template_length)
