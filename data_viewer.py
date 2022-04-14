@@ -200,14 +200,41 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.show()
 
+    def error_box(self, text: str):
+        msg = QtWidgets.QMessageBox()
+        msg.setIcon(QtWidgets.QMessageBox.Critical)
+        msg.setText('Error')
+        msg.setInformativeText(text)
+        msg.setWindowTitle('Error')
+        msg.exec()
+
     def toggle_oof_psd(self):
-        self.oof_psd_visible = not self.oof_psd_visible
-        if self.oof_psd_visible:
-            self.show_oof_psd()
-            self.psd_oof_show.setText('Hide')
+        error = ''
+        try:
+            _ = float(self.oof_freq_low.text())
+        except ValueError:
+            error = 'Min frequency must be a number\n'
+        try:
+            _ = float(self.oof_freq_high.text())
+        except ValueError:
+            error += 'Max frequency must be a number\n'
+        try:
+            scale = float(self.oof_scale.text())
+            if scale < 0:
+                raise ValueError
+        except ValueError:
+            error += 'Scale parameter must be a positive number'
+
+        if error != '':
+            self.error_box(error)
         else:
-            self.hide_oof_psd()
-            self.psd_oof_show.setText('Show')
+            self.oof_psd_visible = not self.oof_psd_visible
+            if self.oof_psd_visible:
+                self.show_oof_psd()
+                self.psd_oof_show.setText('Hide')
+            else:
+                self.hide_oof_psd()
+                self.psd_oof_show.setText('Show')
 
     def hide_oof_psd(self):
         ax = self.psd_plot.axes
@@ -219,9 +246,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.psd_plot.draw()
 
     def show_oof_psd(self):
-        f_min = 1
-        f_max = 50
-        scale = 0.8
+        f_min = float(self.oof_freq_low.text())
+        f_max = float(self.oof_freq_high.text())
+        scale = float(self.oof_scale.text())
         if len(self.psd_plot.axes.lines) > 0:
             current_psd_line = self.psd_plot.axes.lines[0]
             f = current_psd_line._x
