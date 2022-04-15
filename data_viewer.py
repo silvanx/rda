@@ -56,6 +56,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.oof_psd_visible = False
         self.oof_params_updated = False
+        self.oof_equation = None
 
         self.file_list = self.populate_file_list()
 
@@ -259,11 +260,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self.psd_plot.draw()
 
     def show_oof_psd(self):
+        ax = self.psd_plot.axes
         f_min = float(self.oof_freq_low.text())
         f_max = float(self.oof_freq_high.text())
         scale = float(self.oof_scale.text())
-        if len(self.psd_plot.axes.lines) > 0:
-            current_psd_line = self.psd_plot.axes.lines[0]
+        if len(ax.lines) > 0:
+            current_psd_line = ax.lines[0]
             f = current_psd_line._x
             pxx = current_psd_line._y
             idx = np.where((f >= f_min) & (f <= f_max))
@@ -272,9 +274,13 @@ class MainWindow(QtWidgets.QMainWindow):
             fm = f ** m
             oof = scale * (np.e**b * fm)
             clean_pxx = pxx - oof
-            self.psd_plot.axes.plot(current_psd_line._x, oof)
-            self.psd_plot.axes.plot(current_psd_line._x, clean_pxx)
-            self.psd_plot.axes.legend(['PSD', '1/f', 'PSD-1/f'])
+            equation = '$e^{%.2f} \\times f^{%.2f}$' % (b, m)
+            ax.plot(current_psd_line._x, oof)
+            color = self.psd_plot.axes.lines[-1].get_color()
+            ax.text(75, ax.get_ylim()[1] / 2, equation,
+                    color=color)
+            ax.plot(current_psd_line._x, clean_pxx)
+            ax.legend(['PSD', '1/f', 'PSD-1/f'])
             self.psd_plot.draw()
 
     def change_file_dir(self):
