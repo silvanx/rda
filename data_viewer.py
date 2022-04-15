@@ -346,6 +346,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.plot_data_from_gui_csv(filename)
         elif re.match(r'^\.bin$', file.suffix):
             self.plot_data_from_gui_bin(filename)
+        if self.oof_psd_visible:
+            self.show_oof_psd()
 
     def plot_data_from_matlab_file(self, filename):
         file = Path(filename)
