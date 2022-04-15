@@ -55,6 +55,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stim_selected = None
 
         self.oof_psd_visible = False
+        self.oof_params_updated = False
 
         self.file_list = self.populate_file_list()
 
@@ -119,8 +120,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.psd_oof_show = QtWidgets.QPushButton('Show')
         self.psd_oof_show.clicked.connect(self.toggle_oof_psd)
         self.oof_freq_low = QtWidgets.QLineEdit()
+        self.oof_freq_low.textChanged.connect(self.update_oof_params)
         self.oof_freq_high = QtWidgets.QLineEdit()
+        self.oof_freq_high.textChanged.connect(self.update_oof_params)
         self.oof_scale = QtWidgets.QLineEdit()
+        self.oof_scale.textChanged.connect(self.update_oof_params)
         psd_oof.addWidget(QtWidgets.QLabel('1/f fitting: '))
         psd_oof.addWidget(QtWidgets.QLabel('Low frequency:'))
         psd_oof.addWidget(self.oof_freq_low)
@@ -208,6 +212,11 @@ class MainWindow(QtWidgets.QMainWindow):
         msg.setWindowTitle('Error')
         msg.exec()
 
+    def update_oof_params(self):
+        if self.oof_psd_visible:
+            self.oof_params_updated = True
+            self.psd_oof_show.setText('Update')
+
     def toggle_oof_psd(self):
         error = ''
         try:
@@ -228,6 +237,10 @@ class MainWindow(QtWidgets.QMainWindow):
         if error != '':
             self.error_box(error)
         else:
+            if self.oof_params_updated:
+                self.hide_oof_psd()
+                self.oof_params_updated = False
+                self.oof_psd_visible = False
             self.oof_psd_visible = not self.oof_psd_visible
             if self.oof_psd_visible:
                 self.show_oof_psd()
