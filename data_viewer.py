@@ -121,10 +121,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.psd_oof_show = QtWidgets.QPushButton('Show')
         self.psd_oof_show.clicked.connect(self.toggle_oof_psd)
         self.oof_freq_low = QtWidgets.QLineEdit()
+        self.oof_freq_low.setText('2')
         self.oof_freq_low.textChanged.connect(self.update_oof_params)
         self.oof_freq_high = QtWidgets.QLineEdit()
+        self.oof_freq_high.setText('100')
         self.oof_freq_high.textChanged.connect(self.update_oof_params)
         self.oof_scale = QtWidgets.QLineEdit()
+        self.oof_scale.setText('1')
         self.oof_scale.textChanged.connect(self.update_oof_params)
         psd_oof.addWidget(QtWidgets.QLabel('1/f fitting: '))
         psd_oof.addWidget(QtWidgets.QLabel('Low frequency:'))
@@ -268,8 +271,7 @@ class MainWindow(QtWidgets.QMainWindow):
             current_psd_line = ax.lines[0]
             f = current_psd_line._x
             pxx = current_psd_line._y
-            idx = np.where((f >= f_min) & (f <= f_max))
-            m, b = np.polyfit(np.log(f[idx]), np.log(pxx[idx]), 1)
+            m, b = process.fit_oof(f, pxx, f_min, f_max)
             f[f == 0] = 0.000000001
             fm = f ** m
             oof = scale * (np.e**b * fm)

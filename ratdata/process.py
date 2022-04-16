@@ -217,6 +217,13 @@ def pulses_in_slice(p: tuple[float, float], fs: int,
     return p[0] * fs > slice_start and p[1] * fs < slice_end
 
 
+def fit_oof(f: np.ndarray, pxx: np.ndarray, f_min: float,
+            f_max: float) -> tuple[float, float]:
+    idx = np.where((f >= f_min) & (f <= f_max))
+    m, b = np.polyfit(np.log(f[idx]), np.log(pxx[idx]), 1)
+    return m, b
+
+
 def create_pulse_template(rec: ingest.Recording,
                           template_length: int = None,
                           start_offset: int = 0,
