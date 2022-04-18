@@ -59,6 +59,7 @@ class RecordingPower(Model):
     recording = ForeignKeyField(RecordingFile, backref='power', unique=True)
     beta_power = FloatField()
     total_power = FloatField()
+    beta_power_without_oof = FloatField()
 
     class Meta:
         database = database_proxy
@@ -280,21 +281,24 @@ def get_recording_slice(filename: str) -> tuple[float, float]:
 
 
 def upsert_power_record(f: ingest.Recording, recording_beta_power: float,
-                        recording_total_power: float) -> int:
+                        recording_total_power: float,
+                        beta_no_oof: float) -> int:
     q = RecordingPower.select().join(RecordingFile)\
         .where(RecordingFile.filename == f.filename)
     if q.count() == 0:
         rec = RecordingFile.get(filename=f.filename)
         rp = RecordingPower.insert(recording=rec,
                                    beta_power=recording_beta_power,
-                                   total_power=recording_total_power)
+                                   total_power=recording_total_power,
+                                   beta_power_without_oof=beta_no_oof)
         rp_id = rp.execute()
         RecordingSlice.update(updated=False)\
             .where(RecordingSlice.recording == rec).execute()
     elif q.count() == 1:
         rec = q.get().recording
         rp_id = RecordingPower.update(beta_power=recording_beta_power,
-                                      total_power=recording_total_power)\
+                                      total_power=recording_total_power,
+                                      beta_power_without_oof=beta_no_oof)\
                               .where(RecordingPower.recording == rec)\
                               .execute()
         RecordingSlice.update(updated=False)\

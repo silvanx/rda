@@ -2,15 +2,29 @@ import scipy.signal as signal
 import scipy.integrate as integrate
 import scipy.interpolate as interpolate
 import numpy as np
-from ratdata import data_manager as dm, ingest
+from ratdata import data_manager as dm, ingest, process
 
 
-def compute_power_in_frequency_band(data: np.ndarray, low: int, high: int,
+def compute_power_in_frequency_band(data: np.ndarray, low: float, high: float,
                                     fs: int) -> float:
-    freqs, psd = signal.welch(data, fs, nperseg=fs)
-    idx = np.logical_and(freqs >= low, freqs <= high)
-    freqs_res = freqs[1] - freqs[0]
-    power = integrate.trapz(psd[idx], dx=freqs_res)
+    f, pxx = signal.welch(data, fs, nperseg=fs)
+    idx = np.logical_and(f >= low, f <= high)
+    f_res = f[1] - f[0]
+    power = integrate.trapz(pxx[idx], dx=f_res)
+    return power
+
+
+def power_in_band_no_oof(data: np.ndarray, low: float, high: float, fs: int,
+                         oof_low: float, oof_high: float, scale: float):
+    f, pxx = signal.welch(data, fs, nperseg=fs)
+    idx = np.logical_and(f >= low, f <= high)
+    f_res = f[1] - f[0]
+    m, b = process.fit_oof(f, pxx, oof_low, oof_high)
+    f[f == 0] = 0.000000001
+    fm = f ** m
+    oof = scale * (np.e**b * fm)
+    clean_pxx = pxx - oof
+    power = integrate.trapz(clean_pxx[idx], dx=f_res)
     return power
 
 
