@@ -5,13 +5,19 @@ import numpy as np
 
 
 def plot_beta_one_rat_one_condition(rat_label: str, cond: str,
-                                    img_filename: str = None) -> None:
+                                    img_filename: str = None,
+                                    remove_oof: bool = False) -> None:
     rat = dm.Rat().get(label=rat_label)
     stim_array = ['nostim', 'continuous', 'on-off', 'random']
     boxplot_data = []
     for stim in stim_array:
         rec_array = dm.select_recordings_for_rat(rat, cond, stim)
-        beta = [f.power.get().beta_power for f in rec_array]
+        if remove_oof:
+            beta = [f.power.get().beta_power_without_oof for f in rec_array
+                    if not dm.is_recording_rejected(f.filename)]
+        else:
+            beta = [f.power.get().beta_power for f in rec_array
+                    if not dm.is_recording_rejected(f.filename)]
         boxplot_data.append(beta)
     plot_title = 'Absolute beta power %s %s' % (rat_label, cond)
     boxplot_all_stim(boxplot_data, stim_array, plot_title, img_filename)
@@ -20,9 +26,6 @@ def plot_beta_one_rat_one_condition(rat_label: str, cond: str,
 def plot_relative_beta_one_rat_one_condition(rat_label: str,
                                              cond: str,
                                              img_filename: str = None) -> None:
-    time_slices_file = 'data/mce_recordings/time_slices.pickle'
-    # Read time slices from the file
-    time_slices = ingest.read_file_slices(time_slices_file)
     rat = dm.Rat().get(label=rat_label)
     stim_array = ['nostim', 'continuous', 'on-off', 'random']
     boxplot_data = []
@@ -30,7 +33,7 @@ def plot_relative_beta_one_rat_one_condition(rat_label: str,
         rec_array = dm.select_recordings_for_rat(rat, cond, stim)
         rbeta = [f.power.get().beta_power / f.power.get().total_power
                  for f in rec_array
-                 if not file_rejected(time_slices, f.filename)]
+                 if not dm.is_recording_rejected(f.filename)]
         boxplot_data.append(rbeta)
     plot_title = 'Relative beta power %s %s' % (rat_label, cond)
     boxplot_all_stim(boxplot_data, stim_array, plot_title, img_filename)
@@ -38,25 +41,26 @@ def plot_relative_beta_one_rat_one_condition(rat_label: str,
 
 def plot_change_in_absolute_beta(rat_label: str,
                                  cond: str,
-                                 img_filename: str = None) -> None:
+                                 img_filename: str = None,
+                                 remove_oof: bool = False) -> None:
     rat = dm.Rat().get(label=rat_label)
     stim_array = ['nostim', 'continuous', 'on-off', 'random']
     boxplot_data = []
     plot_title = 'Change in absolute beta power %s %s' % (rat_label, cond)
     for stim in stim_array:
         rec_array = dm.select_recordings_for_rat(rat, cond, stim)
-        rbeta_change = [process.get_change_in_beta_power_from_rec(f)
-                        for f in rec_array]
-        boxplot_data.append(rbeta_change)
+        beta_change = [process.get_change_in_beta_power_from_rec(f,
+                                                                 remove_oof)
+                       for f in rec_array
+                       if not dm.is_recording_rejected(f.filename)
+                       and f.baseline.count() > 0]
+        boxplot_data.append(beta_change)
     boxplot_all_stim(boxplot_data, stim_array, plot_title, img_filename)
 
 
 def plot_change_in_relative_beta(rat_label: str,
                                  cond: str,
                                  img_filename: str = None) -> None:
-    time_slices_file = 'data/mce_recordings/time_slices.pickle'
-    # Read time slices from the file
-    time_slices = ingest.read_file_slices(time_slices_file)
     rat = dm.Rat().get(label=rat_label)
     stim_array = ['nostim', 'continuous', 'on-off', 'random']
     boxplot_data = []
@@ -65,7 +69,7 @@ def plot_change_in_relative_beta(rat_label: str,
         rec_array = dm.select_recordings_for_rat(rat, cond, stim)
         rbeta_change = [process.get_change_in_rel_beta_power_from_rec(f)
                         for f in rec_array
-                        if not file_rejected(time_slices, f.filename)]
+                        if not dm.is_recording_rejected(f.filename)]
         rbeta_change = [e for e in rbeta_change if e is not None]
         boxplot_data.append(rbeta_change)
     boxplot_all_stim(boxplot_data, stim_array, plot_title, img_filename)

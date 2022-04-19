@@ -105,12 +105,21 @@ def compute_change_in_power(data1: np.ndarray, data2: np.ndarray, low: int,
     return (power2 / power1 - 1) * 100
 
 
-def get_change_in_beta_power_from_rec(rec: dm.RecordingFile) -> float:
+def get_change_in_beta_power_from_rec(rec: dm.RecordingFile,
+                                      remove_oof: bool = False) -> float:
+    if rec.baseline.count() == 0:
+        return None
+
     baseline = rec.baseline.get().baseline
     recording_power = dm.RecordingPower.get(recording=rec)
     baseline_power = dm.RecordingPower.get(recording=baseline)
-    power_change = (recording_power.beta_power /
-                    baseline_power.beta_power - 1) * 100
+    if remove_oof:
+        rpower = recording_power.beta_power_without_oof
+        bpower = baseline_power.beta_power_without_oof
+    else:
+        rpower = recording_power.beta_power
+        bpower = baseline_power.beta_power
+    power_change = (rpower / bpower - 1) * 100
     return power_change
 
 
