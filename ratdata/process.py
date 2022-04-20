@@ -5,13 +5,18 @@ import numpy as np
 from ratdata import data_manager as dm, ingest, process
 
 
-def compute_power_in_frequency_band(data: np.ndarray, low: float, high: float,
-                                    fs: int) -> float:
+def power_in_frequency_band(data: np.ndarray, low: float, high: float,
+                            fs: int) -> float:
     f, pxx = signal.welch(data, fs, nperseg=fs)
     idx = np.logical_and(f >= low, f <= high)
     f_res = f[1] - f[0]
     power = integrate.trapz(pxx[idx], dx=f_res)
     return power
+
+
+def oof_power_in_frequency_band(m: float, b: float,
+                                low: float, high: float):
+    return np.e ** b / (m + 1) * (high ** (m + 1) - low ** (m + 1))
 
 
 def power_in_band_no_oof(data: np.ndarray, low: float, high: float, fs: int,
@@ -85,9 +90,8 @@ def compute_relative_power(data: np.ndarray, low: int, high: int,
                            total_high: int = None) -> float:
     if not total_high:
         total_high = fs / 2
-    band_power = compute_power_in_frequency_band(data, low, high, fs)
-    total_power = compute_power_in_frequency_band(data, total_low, total_high,
-                                                  fs)
+    band_power = power_in_frequency_band(data, low, high, fs)
+    total_power = power_in_frequency_band(data, total_low, total_high, fs)
     relative_power = band_power / total_power
     return relative_power
 
@@ -100,8 +104,8 @@ def rolling_power_signal(data: np.ndarray, segment_len: int) -> np.ndarray:
 
 def compute_change_in_power(data1: np.ndarray, data2: np.ndarray, low: int,
                             high: int, fs: int) -> float:
-    power1 = compute_power_in_frequency_band(data1, low, high, fs)
-    power2 = compute_power_in_frequency_band(data2, low, high, fs)
+    power1 = power_in_frequency_band(data1, low, high, fs)
+    power2 = power_in_frequency_band(data2, low, high, fs)
     return (power2 / power1 - 1) * 100
 
 
