@@ -41,11 +41,11 @@ class TestDataProcessing(unittest.TestCase):
         np.testing.assert_almost_equal(constant_signal[cut:-cut], power[cut:-cut], decimal=2)
 
     def test_band_power_empty_band(self):
-        power = process.compute_power_in_frequency_band(self.sine_20d, 80, 100, self.target_fs)
+        power = process.power_in_frequency_band(self.sine_20d, 80, 100, self.target_fs)
         self.assertAlmostEqual(power, 0.0)
 
     def test_band_power_full_spectrum(self):
-        power = process.compute_power_in_frequency_band(self.sine_20d, 0, 250, self.target_fs)
+        power = process.power_in_frequency_band(self.sine_20d, 0, 250, self.target_fs)
         self.assertAlmostEqual(power, np.sum(self.sine_20d ** 2 / self.target_fs))
 
     def test_relative_beta_pure_sine(self):
