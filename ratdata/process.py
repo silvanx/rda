@@ -25,12 +25,9 @@ def power_in_band_no_oof(data: np.ndarray, low: float, high: float, fs: int,
     idx = np.logical_and(f >= low, f <= high)
     f_res = f[1] - f[0]
     m, b = process.fit_oof(f, pxx, oof_low, oof_high)
-    f[f == 0] = 0.000000001
-    fm = f ** m
-    oof = scale * (np.e**b * fm)
-    clean_pxx = pxx - oof
-    power = integrate.trapz(clean_pxx[idx], dx=f_res)
-    return power
+    oof_power = oof_power_in_frequency_band(m, b, low, high)
+    power = integrate.trapz(pxx[idx], dx=f_res)
+    return power - oof_power
 
 
 def downsample_signal(data: np.ndarray, fs: int, target_fs: int) -> np.ndarray:

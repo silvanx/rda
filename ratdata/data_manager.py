@@ -59,7 +59,8 @@ class RecordingPower(Model):
     recording = ForeignKeyField(RecordingFile, backref='power', unique=True)
     beta_power = FloatField()
     total_power = FloatField()
-    beta_power_without_oof = FloatField()
+    oof_exponent = FloatField()
+    oof_constant = FloatField()
 
     class Meta:
         database = database_proxy
@@ -282,7 +283,7 @@ def get_recording_slice(filename: str) -> tuple[float, float]:
 
 def upsert_power_record(f: ingest.Recording, recording_beta_power: float,
                         recording_total_power: float,
-                        beta_no_oof: float) -> int:
+                        oof_m: float, oof_b: float) -> int:
     q = RecordingPower.select().join(RecordingFile)\
         .where(RecordingFile.filename == f.filename)
     if q.count() == 0:
@@ -290,7 +291,8 @@ def upsert_power_record(f: ingest.Recording, recording_beta_power: float,
         rp = RecordingPower.insert(recording=rec,
                                    beta_power=recording_beta_power,
                                    total_power=recording_total_power,
-                                   beta_power_without_oof=beta_no_oof)
+                                   oof_exponent=oof_m,
+                                   oof_constant=np.e**oof_b)
         rp_id = rp.execute()
         RecordingSlice.update(updated=False)\
             .where(RecordingSlice.recording == rec).execute()
@@ -298,7 +300,8 @@ def upsert_power_record(f: ingest.Recording, recording_beta_power: float,
         rec = q.get().recording
         rp_id = RecordingPower.update(beta_power=recording_beta_power,
                                       total_power=recording_total_power,
-                                      beta_power_without_oof=beta_no_oof)\
+                                      oof_exponent=oof_m,
+                                      oof_constant=np.e**oof_b)\
                               .where(RecordingPower.recording == rec)\
                               .execute()
         RecordingSlice.update(updated=False)\
