@@ -5,3 +5,4 @@ plots
 __pycache__
 venv*
 rat_data.db
+notes.txt
