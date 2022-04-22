@@ -23,9 +23,11 @@ def find_peaks(f: np.ndarray, psd: np.ndarray,
                f_low: float, f_high: float) -> list[tuple[float, float]]:
     idx = np.where(np.logical_and(f >= f_low, f <= f_high))[0]
     peaks, _ = signal.find_peaks(psd[idx])
+    prominences, _, _ = signal.peak_prominences(psd[idx], peaks)
     peak_locations = idx[peaks]
-    peak_list = [(f[i], psd[i]) for i in peak_locations]
-    return sorted(peak_list, key=lambda e: e[1], reverse=True)
+    peak_list = [(f[l], psd[l], prominences[i])
+                 for i, l in enumerate(peak_locations)]
+    return sorted(peak_list, key=lambda e: e[2], reverse=True)
 
 
 def power_in_band_no_oof(data: np.ndarray, low: float, high: float, fs: int,
