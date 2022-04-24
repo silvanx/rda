@@ -236,7 +236,9 @@ def plot_biomarker_steps(data: np.ndarray, fs: int,
     save_or_show(fig, filename)
 
 
-def plot_amplitude_with_percentiles(plot_data, tstart=0, tstop=None, fs=200):
+def plot_amplitude_with_percentiles(plot_data: np.ndarray, tstart: float = 0,
+                                    tstop: float = None,
+                                    fs: int = 200) -> None:
     p10 = np.percentile(plot_data, 10)
     p20 = np.percentile(plot_data, 20)
     plt.figure(figsize=(20, 10), dpi=100)
@@ -250,5 +252,57 @@ def plot_amplitude_with_percentiles(plot_data, tstart=0, tstop=None, fs=200):
     plt.axhline(np.mean(plot_data), linestyle='-', color='k')
     plt.axhline(p20, linestyle='--', color='k')
     plt.axhline(p10, linestyle=':', color='k')
-    plt.legend(['rat2 stim amplitude [uA]', 'mean amplitude',
+    plt.legend(['stim amplitude [uA]', 'mean amplitude',
                 '20th percentile', '10th percentile'])
+
+
+def plot_peak_location_and_height(peaks: dict, title_remark: str,
+                                  plot_filename: str = None,
+                                  x_lim: list[float] = [11, 25],
+                                  y_lim: list[float] = [-3e-5, 1.5e-4])\
+                                      -> None:
+    c = plt.get_cmap('Dark2')
+    control_rats = [r.label for r in
+                    dm.Rat.select().where(dm.Rat.group == 'control')]
+    ohda_rats = [r.label for r in
+                 dm.Rat.select().where(dm.Rat.group == '6OHDA')]
+    columns = 2
+    rows = max([len(control_rats), len(ohda_rats)])
+
+    fig, ax = plt.subplots(nrows=rows, ncols=columns, figsize=(12, 16))
+    for i, rat in enumerate(ohda_rats):
+        ax[i, 0].set_title(rat)
+        ax[i, 0].set_xlim(x_lim)
+        ax[i, 0].set_ylim(y_lim)
+        xx, yy, pp = zip(*peaks[rat])
+        ax[i, 0].scatter(xx, yy, s=10, color=c.colors[i])
+        ax[i, 0].axvline(np.mean(xx), color=c.colors[i], alpha=1)
+        ax[i, 0].fill_betweenx(ax[i, 0].get_ylim(),
+                               np.ones(2) * (np.mean(xx) - np.std(xx)),
+                               np.ones(2) * (np.mean(xx) + np.std(xx)),
+                               color=c.colors[i], alpha=0.2)
+
+    for i, rat in enumerate(control_rats):
+        ax[i, 1].set_title(rat)
+        ax[i, 1].set_xlim(x_lim)
+        ax[i, 1].set_ylim(y_lim)
+        xx, yy, pp = zip(*peaks[rat])
+        ax[i, 1].scatter(xx, yy, s=10, color=c.colors[len(ohda_rats) + i])
+        ax[i, 1].axvline(np.mean(xx), color=c.colors[len(ohda_rats) + i],
+                         alpha=1)
+        ax[i, 1].fill_betweenx(ax[i, 1].get_ylim(),
+                               np.ones(2) * (np.mean(xx) - np.std(xx)),
+                               np.ones(2) * (np.mean(xx) + np.std(xx)),
+                               color=c.colors[len(ohda_rats) + i], alpha=0.2)
+
+    ax[0, 0].annotate('6-OHDA rats', xy=(0, 0), va='center', ha='center',
+                      xycoords=ax[0, 0].title, xytext=(0.5, 2.2), fontsize=14)
+    ax[0, 1].annotate('control rats', xy=(0, 0), va='center', ha='center',
+                      xycoords=ax[0, 1].title, xytext=(0.5, 2.2), fontsize=14)
+    ax[3, 1].axis('off')
+    fig.suptitle('Most prominent peak location and height%s' % title_remark,
+                 fontsize=14)
+    fig.tight_layout()
+    plt.subplots_adjust(wspace=0.23, top=0.92)
+
+    save_or_show(fig, plot_filename)
