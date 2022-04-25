@@ -2,6 +2,8 @@ import datetime
 import matplotlib.pyplot as plt
 from ratdata import data_manager as dm, process, ingest
 import numpy as np
+import pandas as pd
+import seaborn as sns
 
 
 def plot_beta_one_rat_one_condition(rat_label: str, cond: str,
@@ -13,14 +15,57 @@ def plot_beta_one_rat_one_condition(rat_label: str, cond: str,
     for stim in stim_array:
         rec_array = dm.select_recordings_for_rat(rat, cond, stim)
         if remove_oof:
-            beta = [f.power.get().beta_power_without_oof for f in rec_array
-                    if not dm.is_recording_rejected(f.filename)]
+            beta = []
+            for f in rec_array:
+                if not dm.is_recording_rejected(f.filename):
+                    m = f.power.get().oof_exponent
+                    b = f.power.get().oof_constant
+                    oof = process.oof_power_in_frequency_band(m, b, 12, 18)
+                    power = f.power.get().beta_power - oof
+                    beta.append(power)
+            plot_title = 'Absolute beta power %s %s (without 1/f component)'\
+                % (rat_label, cond)
         else:
             beta = [f.power.get().beta_power for f in rec_array
                     if not dm.is_recording_rejected(f.filename)]
+            plot_title = 'Absolute beta power %s %s' % (rat_label, cond)
         boxplot_data.append(beta)
-    plot_title = 'Absolute beta power %s %s' % (rat_label, cond)
     boxplot_all_stim(boxplot_data, stim_array, plot_title, img_filename)
+
+
+def plot_beta_one_rat(rat_label: str, img_filename: str = None,
+                      remove_oof: bool = False) -> None:
+    label_order = ['nostim', 'continuous', 'on-off', 'random']
+    rat = dm.Rat().get(label=rat_label)
+    rec_array = dm.RecordingFile.select().where(dm.RecordingFile.rat == rat)
+    plot_data = []
+    for f in rec_array:
+        if dm.is_recording_rejected(f.filename):
+            continue
+        if remove_oof:
+            m = f.power.get().oof_exponent
+            b = f.power.get().oof_constant
+            oof = process.oof_power_in_frequency_band(m, b, 12, 18)
+            power = f.power.get().beta_power - oof
+            plot_title = 'Absolute beta power %s (without 1/f component)'\
+                % (rat_label)
+        else:
+            power = f.power.get().beta_power
+            plot_title = 'Absolute beta power %s' % (rat_label)
+        if f.stim.count() == 0:
+            stim = 'nostim'
+        else:
+            stim = f.stim.get().stim_type
+        plot_data.append([power, stim])
+    df = pd.DataFrame(plot_data)
+    df.columns = ['power', 'stim']
+    fig = plt.figure(figsize=(12, 6))
+    sns.boxplot(x='stim', y='power', data=df, palette='Dark2',
+                order=label_order, boxprops=dict(alpha=.8))
+    sns.swarmplot(x='stim', y='power', data=df, s=4, palette='Dark2',
+                  order=label_order)
+    plt.title(plot_title)
+    save_or_show(fig, img_filename)
 
 
 def plot_relative_beta_one_rat_one_condition(rat_label: str,

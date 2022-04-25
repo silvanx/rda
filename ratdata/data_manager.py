@@ -292,7 +292,7 @@ def upsert_power_record(f: ingest.Recording, recording_beta_power: float,
                                    beta_power=recording_beta_power,
                                    total_power=recording_total_power,
                                    oof_exponent=oof_m,
-                                   oof_constant=np.e**oof_b)
+                                   oof_constant=oof_b)
         rp_id = rp.execute()
         RecordingSlice.update(updated=False)\
             .where(RecordingSlice.recording == rec).execute()
@@ -301,7 +301,7 @@ def upsert_power_record(f: ingest.Recording, recording_beta_power: float,
         rp_id = RecordingPower.update(beta_power=recording_beta_power,
                                       total_power=recording_total_power,
                                       oof_exponent=oof_m,
-                                      oof_constant=np.e**oof_b)\
+                                      oof_constant=oof_b)\
                               .where(RecordingPower.recording == rec)\
                               .execute()
         RecordingSlice.update(updated=False)\
