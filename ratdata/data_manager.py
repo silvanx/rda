@@ -19,6 +19,7 @@ class Rat(Model):
     date_end = DateField()
     label = TextField()
     group = TextField()
+    full_label = TextField(null=True)
 
     class Meta:
         database = database_proxy
@@ -184,10 +185,11 @@ def add_file_to_database(filename: str) -> None:
 
 
 def add_rat_to_database(date_start: datetime.date, date_end: datetime.date,
-                        label: str, group: str) -> tuple[Rat, bool]:
+                        label: str, group: str,
+                        full_label: str) -> tuple[Rat, bool]:
     result, created = Rat.get_or_create(date_start=date_start,
                                         date_end=date_end, label=label,
-                                        group=group)
+                                        group=group, full_label=full_label)
     return result, created
 
 
