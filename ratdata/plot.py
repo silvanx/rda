@@ -6,10 +6,10 @@ import pandas as pd
 import seaborn as sns
 
 
-def plot_beta_one_rat_one_condition(rat_label: str, cond: str,
+def plot_beta_one_rat_one_condition(rat_full_label: str, cond: str,
                                     img_filename: str = None,
                                     remove_oof: bool = False) -> None:
-    rat = dm.Rat().get(label=rat_label)
+    rat = dm.Rat().get(full_label=rat_full_label)
     stim_array = ['nostim', 'continuous', 'on-off', 'random']
     boxplot_data = []
     for stim in stim_array:
@@ -24,20 +24,22 @@ def plot_beta_one_rat_one_condition(rat_label: str, cond: str,
                     power = f.power.get().beta_power - oof
                     beta.append(power)
             plot_title = 'Absolute beta power %s %s (without 1/f component)'\
-                % (rat_label, cond)
+                % (rat_full_label, cond)
         else:
             beta = [f.power.get().beta_power for f in rec_array
                     if not dm.is_recording_rejected(f.filename)]
-            plot_title = 'Absolute beta power %s %s' % (rat_label, cond)
+            plot_title = 'Absolute beta power %s %s' % (rat_full_label, cond)
         boxplot_data.append(beta)
     boxplot_all_stim(boxplot_data, stim_array, plot_title, img_filename)
 
 
-def plot_beta_one_rat(rat_label: str, img_filename: str = None,
+def plot_beta_one_rat(rat_full_label: str, img_filename: str = None,
                       remove_oof: bool = False) -> None:
     label_order = ['nostim', 'continuous', 'on-off', 'random']
-    rat = dm.Rat().get(label=rat_label)
+    rat = dm.Rat().get(full_label=rat_full_label)
     rec_array = dm.RecordingFile.select().where(dm.RecordingFile.rat == rat)
+    if rec_array.count() == 0:
+        return
     plot_data = []
     for f in rec_array:
         if dm.is_recording_rejected(f.filename):
@@ -48,10 +50,10 @@ def plot_beta_one_rat(rat_label: str, img_filename: str = None,
             oof = process.oof_power_in_frequency_band(m, b, 12, 18)
             power = f.power.get().beta_power - oof
             plot_title = 'Absolute beta power %s (without 1/f component)'\
-                % (rat_label)
+                % (rat_full_label)
         else:
             power = f.power.get().beta_power
-            plot_title = 'Absolute beta power %s' % (rat_label)
+            plot_title = 'Absolute beta power %s' % (rat_full_label)
         if f.stim.count() == 0:
             stim = 'nostim'
         else:
@@ -68,10 +70,10 @@ def plot_beta_one_rat(rat_label: str, img_filename: str = None,
     save_or_show(fig, img_filename)
 
 
-def plot_relative_beta_one_rat_one_condition(rat_label: str,
+def plot_relative_beta_one_rat_one_condition(rat_full_label: str,
                                              cond: str,
                                              img_filename: str = None) -> None:
-    rat = dm.Rat().get(label=rat_label)
+    rat = dm.Rat().get(full_label=rat_full_label)
     stim_array = ['nostim', 'continuous', 'on-off', 'random']
     boxplot_data = []
     for stim in stim_array:
@@ -80,18 +82,18 @@ def plot_relative_beta_one_rat_one_condition(rat_label: str,
                  for f in rec_array
                  if not dm.is_recording_rejected(f.filename)]
         boxplot_data.append(rbeta)
-    plot_title = 'Relative beta power %s %s' % (rat_label, cond)
+    plot_title = 'Relative beta power %s %s' % (rat_full_label, cond)
     boxplot_all_stim(boxplot_data, stim_array, plot_title, img_filename)
 
 
-def plot_change_in_absolute_beta(rat_label: str,
+def plot_change_in_absolute_beta(rat_full_label: str,
                                  cond: str,
                                  img_filename: str = None,
                                  remove_oof: bool = False) -> None:
-    rat = dm.Rat().get(label=rat_label)
+    rat = dm.Rat().get(full_label=rat_full_label)
     stim_array = ['nostim', 'continuous', 'on-off', 'random']
     boxplot_data = []
-    plot_title = 'Change in absolute beta power %s %s' % (rat_label, cond)
+    plot_title = 'Change in absolute beta power %s %s' % (rat_full_label, cond)
     for stim in stim_array:
         rec_array = dm.select_recordings_for_rat(rat, cond, stim)
         beta_change = [process.get_change_in_beta_power_from_rec(f,
@@ -103,13 +105,13 @@ def plot_change_in_absolute_beta(rat_label: str,
     boxplot_all_stim(boxplot_data, stim_array, plot_title, img_filename)
 
 
-def plot_change_in_relative_beta(rat_label: str,
+def plot_change_in_relative_beta(rat_full_label: str,
                                  cond: str,
                                  img_filename: str = None) -> None:
-    rat = dm.Rat().get(label=rat_label)
+    rat = dm.Rat().get(full_label=rat_full_label)
     stim_array = ['nostim', 'continuous', 'on-off', 'random']
     boxplot_data = []
-    plot_title = 'Change in relative beta power %s %s' % (rat_label, cond)
+    plot_title = 'Change in relative beta power %s %s' % (rat_full_label, cond)
     for stim in stim_array:
         rec_array = dm.select_recordings_for_rat(rat, cond, stim)
         rbeta_change = [process.get_change_in_rel_beta_power_from_rec(f)
@@ -133,12 +135,12 @@ def boxplot_all_stim(boxplot_data: list[list[float]], x_labels: list[str],
     save_or_show(fig, img_filename)
 
 
-def plot_baseline_across_time(rat_label: str,
+def plot_baseline_across_time(rat_full_label: str,
                               img_filename: str = None) -> None:
     time_slices_file = 'data/mce_recordings/time_slices.pickle'
     # Read time slices from the file
     time_slices = ingest.read_file_slices(time_slices_file)
-    rat = dm.Rat.get(label=rat_label)
+    rat = dm.Rat.get(full_label=rat_full_label)
     baseline_recordings = dm.RecordingFile.select()\
         .where((dm.RecordingFile.rat == rat) &
                (dm.RecordingFile.condition == 'baseline'))\
@@ -154,7 +156,7 @@ def plot_baseline_across_time(rat_label: str,
 
     fig = plt.figure(figsize=(12, 6))
     plt.plot(plot_date, plot_power, '.-')
-    plt.title('Baseline relative beta for %s' % rat_label)
+    plt.title('Baseline relative beta for %s' % rat_full_label)
 
     save_or_show(fig, img_filename)
 
@@ -218,9 +220,10 @@ def plot_relative_beta_one_day_one_rat(day: datetime.date,
                 ax.set_xticks(range(len(rbeta)))
                 ax.set_xticklabels(label)
                 plt.title('Relative beta power for %s on %s' %
-                          (rat.label, day.strftime("%d %b %Y")))
+                          (rat.full_label, day.strftime("%d %b %Y")))
                 if filename_prefix is not None:
-                    filename = '%s_%s_%s.png' % (filename_prefix, rat.label,
+                    filename = '%s_%s_%s.png' % (filename_prefix,
+                                                 rat.full_label,
                                                  day.strftime("%Y%m%d"))
                 else:
                     filename = None
