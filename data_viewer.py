@@ -153,10 +153,16 @@ class MainWindow(QtWidgets.QMainWindow):
         # File list on the right
         self.file_list_widget = QtWidgets.QListWidget()
         self.file_list_widget.setIconSize(QtCore.QSize(12, 12))
+        self.db_label = QtWidgets.QLabel(self.db_file)
+        self.db_label.setStyleSheet("QLabel::hover"
+                                    "{"
+                                    "color : #8e8e8e"
+                                    "}")
         self.directory_label = QtWidgets.QLabel(self.file_dir)
-        change_directory_button = QtWidgets.QPushButton('Change directory')
-        self.refresh_file_list_display()
-
+        self.directory_label.setStyleSheet("QLabel::hover"
+                                           "{"
+                                           "color : #8e8e8e"
+                                           "}")
         condition_combo_box = QtWidgets.QComboBox()
         condition_combo_box.insertItems(0, self.all_conditions)
         condition_combo_box_area = QtWidgets.QHBoxLayout()
@@ -180,9 +186,10 @@ class MainWindow(QtWidgets.QMainWindow):
         stim_combo_box.currentIndexChanged.connect(self.filter_files_by_stim)
 
         file_list_area = QtWidgets.QVBoxLayout()
+        file_list_area.addWidget(QtWidgets.QLabel('Current database:'))
+        file_list_area.addWidget(self.db_label)
         file_list_area.addWidget(QtWidgets.QLabel('Current directory:'))
         file_list_area.addWidget(self.directory_label)
-        file_list_area.addWidget(change_directory_button)
         file_list_area.addLayout(condition_combo_box_area)
         file_list_area.addLayout(rat_combo_box_area)
         file_list_area.addLayout(stim_combo_box_area)
@@ -197,11 +204,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         next_button.clicked.connect(self.plot_next_file)
         prev_button.clicked.connect(self.plot_previous_file)
-        change_directory_button.clicked.connect(self.change_file_dir)
+        self.directory_label.mousePressEvent = self.change_file_dir
 
         self.file_list_widget.itemSelectionChanged.connect(
             self.plot_clicked_file)
 
+        self.refresh_file_list_display()
         self.setWindowTitle('Rat data analysis')
         self.setCentralWidget(widget)
         self.showMaximized()
@@ -285,13 +293,15 @@ class MainWindow(QtWidgets.QMainWindow):
             ax.legend(['PSD', '1/f', 'PSD-1/f'])
             self.psd_plot.draw()
 
-    def change_file_dir(self):
-        newdir = QtWidgets.QFileDialog.getExistingDirectory()
-        self.file_dir = newdir
-        self.directory_label.setText(newdir)
-        self.current_file = None
-        self.file_list = self.populate_file_list()
-        self.refresh_file_list_display()
+    def change_file_dir(self, event):
+        newdir = QtWidgets.QFileDialog.getExistingDirectory(self, '',
+                                                            self.file_dir)
+        if newdir:
+            self.file_dir = newdir
+            self.directory_label.setText(newdir)
+            self.current_file = None
+            self.file_list = self.populate_file_list()
+            self.refresh_file_list_display()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key_PageDown:
