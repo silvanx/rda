@@ -1,6 +1,5 @@
 from datetime import datetime
 from pathlib import Path
-import pathlib
 import re
 import ratdata.ingest as ingest
 import dateutil.parser as dparser
@@ -136,7 +135,7 @@ def find_all_recording_files_dir(dirname: str) -> list[str]:
 
 
 def find_processed_files_dir(dirname: str) -> list[str]:
-    dirname_full = str(pathlib.Path(dirname).absolute())
+    dirname_full = str(Path(dirname).absolute())
     query = RecordingFile.select().where(RecordingFile.dirname == dirname_full)
     result = query.execute()
     return [f.filename for f in result]
@@ -150,6 +149,7 @@ def find_unprocessed_files_dir(dirname: str) -> list[str]:
 
 def process_single_file(filename: str) -> None:
     add_file_to_database(filename)
+    add_stim_to_database(filename)
 
 
 def db_get_rat(timestamp: str, rat_label: str) -> Rat:
@@ -161,6 +161,21 @@ def db_get_rat(timestamp: str, rat_label: str) -> Rat:
     return result
 
 
+def add_stim_to_database(filename: str) -> None:
+    f = Path(filename)
+    rec = RecordingFile.select().where(RecordingFile.filename == f.name)
+    if rec.count() == 1:
+        stim_type = ingest.extract_stim_type_from_filename(f.name)
+        s = StimSettings.insert(
+            stim_type=stim_type,
+            recording_file=rec.get(),
+            max_amplitude=None
+        ).execute()
+        print('Stim: %s id: %d' % (stim_type, s))
+    else:
+        print('ERROR! file not found in database: %s' % f.name)
+
+
 def db_get_recording(filename: str) -> RecordingFile:
     query = RecordingFile.select().where(RecordingFile.filename == filename)
     result = query.get()
@@ -168,7 +183,7 @@ def db_get_recording(filename: str) -> RecordingFile:
 
 
 def add_file_to_database(filename: str) -> None:
-    f = pathlib.Path(filename)
+    f = Path(filename)
     timestamp, rat, condition = ingest.extract_info_from_filename(filename)
 
     if None in (timestamp, rat, condition):
@@ -238,7 +253,7 @@ def get_all_recording_dates_nostim() -> list[datetime.date]:
 def get_electrode_data_from_recording(rec: RecordingFile,
                                       select_slice: bool) -> tuple[np.ndarray,
                                                                    float]:
-    file_fullpath = str(pathlib.Path(rec.dirname) / rec.filename)
+    file_fullpath = str(Path(rec.dirname) / rec.filename)
     recording_data = ingest.read_mce_matlab_file(file_fullpath)
     data = recording_data.electrode_data
     dt = recording_data.dt
