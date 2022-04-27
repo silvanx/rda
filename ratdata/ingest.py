@@ -55,7 +55,8 @@ def extract_stim_type_from_filename(filename: str) -> str:
     on_off_regex = r'.* on-off.*\.mat$'
     continuous_regex = r'.* (130Hz|open-loop|DBS)\.mat$'
     proportional_regex = r'.* pro\.mat$'
-    low_regex = r'.* low(20)?\.mat$'
+    low_regex = r'.* low\.mat$'
+    low20_regex = r'.* low20\.mat$'
     stim_type = 'nostim'
 
     if re.match(random_regex, filename):
@@ -68,6 +69,8 @@ def extract_stim_type_from_filename(filename: str) -> str:
         stim_type = 'proportional'
     elif re.match(low_regex, filename):
         stim_type = 'low'
+    elif re.match(low20_regex, filename):
+        stim_type = 'low20'
     return stim_type
 
 
