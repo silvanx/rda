@@ -316,9 +316,11 @@ class MainWindow(QtWidgets.QMainWindow):
             currentItem = QtWidgets.QListWidgetItem(self.file_list_widget)
             currentItem.setText(file)
             if dm.is_recording_rejected(file):
-                currentItem.setIcon(QtGui.QIcon(r"stop.png"))
+                currentItem.setIcon(QtGui.QIcon(r'stop.png'))
             elif dm.is_recording_sliced(file):
-                currentItem.setIcon(QtGui.QIcon(r"scissors.png"))
+                currentItem.setIcon(QtGui.QIcon(r'scissors.png'))
+            else:
+                currentItem.setIcon(QtGui.QIcon(r'empty.png'))
             # file_key = file.split('.')[0]
             # if file_key in self.time_slices:
             #     # if 'reject' in self.time_slices[file_key]:
