@@ -81,6 +81,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # Matplotlib edit toolbar
         toolbar = NavigationToolbar(self.time_plot, self)
         toolbar_psd = NavigationToolbar(self.psd_plot, self)
+        toolbar.setIconSize(QtCore.QSize(25, 25))
+        toolbar_psd.setIconSize(QtCore.QSize(25, 25))
 
         # Next/previous buttons
         nav_buttons = QtWidgets.QHBoxLayout()
@@ -119,6 +121,7 @@ class MainWindow(QtWidgets.QMainWindow):
         time_plot_controls.addLayout(slice_selection)
 
         self.welch_length_input = QtWidgets.QLineEdit()
+        self.welch_length_input.setMaximumWidth(30)
         self.welch_length_input.setText(str(self.welch_window_length))
         self.welch_length_input.editingFinished.connect(self.update_psd)
 
@@ -127,12 +130,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.psd_oof_show = QtWidgets.QPushButton('Show')
         self.psd_oof_show.clicked.connect(self.toggle_oof_psd)
         self.oof_freq_low = QtWidgets.QLineEdit()
+        self.oof_freq_low.setMaximumWidth(50)
         self.oof_freq_low.setText('2')
         self.oof_freq_low.textChanged.connect(self.update_oof_params)
         self.oof_freq_high = QtWidgets.QLineEdit()
+        self.oof_freq_high.setMaximumWidth(50)
         self.oof_freq_high.setText('100')
         self.oof_freq_high.textChanged.connect(self.update_oof_params)
         self.oof_scale = QtWidgets.QLineEdit()
+        self.oof_scale.setMaximumWidth(60)
         self.oof_scale.setText('1')
         self.oof_scale.textChanged.connect(self.update_oof_params)
         psd_oof.addWidget(QtWidgets.QLabel('1/f fitting: '))
@@ -147,7 +153,7 @@ class MainWindow(QtWidgets.QMainWindow):
         psd_plot_controls = QtWidgets.QHBoxLayout()
         psd_plot_controls.addWidget(toolbar_psd)
         psd_plot_controls.addWidget(QtWidgets.QLabel(
-            'Welch window length (s):'))
+            'Window len(s):'))
         psd_plot_controls.addWidget(self.welch_length_input)
         psd_plot_controls.addLayout(psd_oof)
 
