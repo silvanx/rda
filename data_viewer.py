@@ -481,32 +481,19 @@ class MainWindow(QtWidgets.QMainWindow):
     def populate_file_list(self):
         dir = Path(self.file_dir)
         extension_regexp = re.compile(r'.*\.(mat|txt|bin)$')
-        stim_regexp_dict = {
-            'nostim': r'.* (baseline[0-9]?|CT( 90s)?|ST|OFT[12]?)\.mat$',
-            'continuous': r'.* (130Hz|DBS)\.mat$',
-            'on-off': r'.*on-off\.mat$',
-            'random': r'.*random\.mat$',
-            'proportional': r'.*pro( noscale)?\.mat$'
-        }
-        if self.rat_selected is not None:
-            rat_regexp = re.compile(
-                r'.+ %s .*\.(mat|txt|bin)$' % self.rat_selected)
-        else:
-            rat_regexp = extension_regexp
-        if self.condition_selected is not None:
-            condition_regexp = re.compile(
-                r'.+ %s.*\.(mat|txt|bin)$' % self.condition_selected)
-        else:
-            condition_regexp = extension_regexp
-        if self.stim_selected is not None:
-            stim_regexp = re.compile(stim_regexp_dict[self.stim_selected])
-        else:
-            stim_regexp = extension_regexp
 
-        file_list = [file.name for file in dir.iterdir() if
-                     re.match(rat_regexp, file.name) and
-                     re.match(condition_regexp, file.name) and
-                     re.match(stim_regexp, file.name)]
+        rat = self.rat_selected
+        condition = self.condition_selected
+        stim = self.stim_selected
+
+        if rat is None and condition is None and stim is None:
+            file_list = [file.name for file in dir.iterdir() if
+                         re.match(extension_regexp, file.name)]
+        else:
+            matching_files = dm.files_matching_filter(rat, condition, stim)
+            file_list = [file.name for file in dir.iterdir() if
+                         re.match(extension_regexp, file.name) and
+                         file.name in matching_files]
         return file_list
 
     def filter_files_by_condition(self, index):

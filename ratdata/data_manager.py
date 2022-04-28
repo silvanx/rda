@@ -5,8 +5,9 @@ import ratdata.ingest as ingest
 import dateutil.parser as dparser
 from peewee import SqliteDatabase, AutoField, DateField, TextField, \
                    ForeignKeyField, Model, DatabaseProxy, IntegerField, \
-                   FloatField, SelectQuery, BooleanField
+                   FloatField, SelectQuery, BooleanField, operator, JOIN
 import numpy as np
+from functools import reduce
 
 
 database_proxy = DatabaseProxy()
@@ -124,6 +125,36 @@ def is_recording_sliced(filename: str) -> bool:
     q = RecordingSlice.select().join(RecordingFile)\
         .where(RecordingFile.filename == filename)
     return q.count() == 1
+
+
+def files_matching_filter(rat_full_label: str, condition: str,
+                          stim: str) -> set[str]:
+    if rat_full_label is None and condition is None and stim is None:
+        flist = [f.filename for f in RecordingFile.select()]
+        return flist
+
+    checks = list()
+
+    if rat_full_label is not None:
+        checks.append(RecordingFile.rat.full_label == rat_full_label)
+
+    if condition is not None:
+        checks.append(RecordingFile.condition == condition)
+
+    if stim is not None:
+        checks.append(StimSettings.stim_type == stim)
+
+    where_check = reduce(operator.and_, checks)
+
+    query = (RecordingFile
+             .select()
+             .join(Rat)
+             .switch(RecordingFile)
+             .join(StimSettings, JOIN.LEFT_OUTER)
+             .where(where_check))
+
+    fset = set([f.filename for f in query])
+    return fset
 
 
 def find_all_recording_files_dir(dirname: str) -> list[str]:
