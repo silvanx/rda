@@ -100,10 +100,10 @@ def periods_from_start_stop(start: list[float],
     if len(start) > 0 and len(stop) > 0:
         if stop[0] < start[0]:
             stop = np.delete(stop, 0)
-        if start[-1] > stop[-1]:
+        if len(stop) == 0 or start[-1] > stop[-1]:
             start = np.delete(start, -1)
         periods = tuple([b for b in
-                         zip(start, stop)])
+                        zip(start, stop)])
     return periods
 
 
