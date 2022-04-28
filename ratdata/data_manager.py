@@ -268,8 +268,8 @@ def get_electrode_data_from_recording(rec: RecordingFile,
 
 
 def get_rat_labels() -> list[str]:
-    query = Rat.select().order_by(Rat.label)
-    result = [r.label for r in query]
+    query = Rat.select().order_by(Rat.full_label)
+    result = [r.full_label for r in query]
     result.insert(0, None)
     return result
 
