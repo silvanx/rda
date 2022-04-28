@@ -215,7 +215,7 @@ def read_gui_bin_file(filename: str, channels: int = 26) -> np.ndarray:
 def read_gui_amplitude_file_data(filename: str) -> np.ndarray:
     """Read data from amplitude GUI recording file
 
-    File is supposed to contain one integer per line, sampled at 100 Hz.
+    File is supposed to contain one integer per line, sampled at 200 Hz.
     Comments are indicated by --- at the beginning of the line.
     """
     with open(filename, 'r') as f:

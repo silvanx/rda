@@ -376,7 +376,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if re.match(r'^\.mat$', file.suffix):
             self.plot_data_from_matlab_file(filename)
         elif re.match(r'^\.txt$', file.suffix):
-            self.plot_data_from_gui_csv(filename)
+            self.plot_data_from_amplitude_file(filename)
         elif re.match(r'^\.bin$', file.suffix):
             self.plot_data_from_gui_bin(filename)
         if self.oof_psd_visible:
@@ -398,6 +398,16 @@ class MainWindow(QtWidgets.QMainWindow):
                 x = np.mean(x, 0)
             self.stim_pulse_window.set_recording(data)
             self.update_plot(tt, x, file)
+
+    def plot_data_from_amplitude_file(self, filename):
+        fs = 200
+        file = Path(filename)
+        if re.match(r'^\.txt$', file.suffix):
+            x = ingest.read_gui_amplitude_file_data(file)
+            n = len(x)
+            tt = np.linspace(0, n / fs, n)
+        self.stim_pulse_window.set_recording(None)
+        self.update_plot(tt, x, file)
 
     def plot_data_from_gui_csv(self, filename):
         pass
@@ -872,7 +882,8 @@ class StimPulseWindow(QtWidgets.QMainWindow):
 
     def set_recording(self, data: ingest.Recording) -> None:
         self.recording = data
-        self.recording.filename = str(pathlib.Path(data.filename).stem)
+        if data is not None:
+            self.recording.filename = str(pathlib.Path(data.filename).stem)
 
     def subtract_current_template(self):
         if self.recording is None:
