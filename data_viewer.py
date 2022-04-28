@@ -58,6 +58,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.oof_params_updated = False
         self.oof_equation = None
 
+        self.welch_window_length = 1
+
         self.file_list = self.populate_file_list()
 
         self.all_conditions = dm.get_condition_labels()
@@ -116,6 +118,10 @@ class MainWindow(QtWidgets.QMainWindow):
         time_plot_controls.addWidget(toolbar)
         time_plot_controls.addLayout(slice_selection)
 
+        self.welch_length_input = QtWidgets.QLineEdit()
+        self.welch_length_input.setText(str(self.welch_window_length))
+        self.welch_length_input.editingFinished.connect(self.update_psd)
+
         # one-over-f component in PSD
         psd_oof = QtWidgets.QHBoxLayout()
         self.psd_oof_show = QtWidgets.QPushButton('Show')
@@ -140,6 +146,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         psd_plot_controls = QtWidgets.QHBoxLayout()
         psd_plot_controls.addWidget(toolbar_psd)
+        psd_plot_controls.addWidget(QtWidgets.QLabel(
+            'Welch window length (s):'))
+        psd_plot_controls.addWidget(self.welch_length_input)
         psd_plot_controls.addLayout(psd_oof)
 
         # Plotting areas
@@ -341,6 +350,15 @@ class MainWindow(QtWidgets.QMainWindow):
             self.subtract_pulse = False
             self.plot_data_from_file(filename)
 
+    def update_psd(self):
+        new_welch_len = int(self.welch_length_input.text())
+        if self.welch_window_length != new_welch_len:
+            self.welch_window_length = new_welch_len
+            current_filename = self.file_list[self.current_file]
+            if current_filename:
+                self.plot_data_from_file(
+                    Path(self.file_dir) / current_filename)
+
     def plot_next_file(self):
         if self.current_file is None:
             self.current_file = 0
@@ -466,7 +484,8 @@ class MainWindow(QtWidgets.QMainWindow):
             x = x[start_sample:end_sample]
         self.psd_plot.axes.cla()
         if len(x) > fs:
-            f_signal, spectrum_signal = signal.welch(x, fs, nperseg=fs)
+            f_signal, spectrum_signal = \
+                signal.welch(x, fs, nperseg=self.welch_window_length*fs)
             self.psd_plot.axes.plot(f_signal, spectrum_signal)
             self.psd_plot.axes.set_xlim([0, 150])
             max_150 = max(spectrum_signal[f_signal <= 150]) * 1.05
