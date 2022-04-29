@@ -310,9 +310,9 @@ def plot_peak_location_and_height(peaks: dict, title_remark: str,
                                   y_lim: list[float] = [-3e-5, 1.5e-4])\
                                       -> None:
     c = plt.get_cmap('Dark2')
-    control_rats = [r.label for r in
+    control_rats = [r.full_label for r in
                     dm.Rat.select().where(dm.Rat.group == 'control')]
-    ohda_rats = [r.label for r in
+    ohda_rats = [r.full_label for r in
                  dm.Rat.select().where(dm.Rat.group == '6OHDA')]
     columns = 2
     rows = max([len(control_rats), len(ohda_rats)])
@@ -323,31 +323,33 @@ def plot_peak_location_and_height(peaks: dict, title_remark: str,
         ax[i, 0].set_xlim(x_lim)
         ax[i, 0].set_ylim(y_lim)
         xx, yy, pp = zip(*peaks[rat])
-        ax[i, 0].scatter(xx, yy, s=10, color=c.colors[i])
-        ax[i, 0].axvline(np.mean(xx), color=c.colors[i], alpha=1)
+        ax[i, 0].scatter(xx, yy, s=10, color=c.colors[0])
+        ax[i, 0].axvline(np.mean(xx), color=c.colors[0], alpha=1)
         ax[i, 0].fill_betweenx(ax[i, 0].get_ylim(),
                                np.ones(2) * (np.mean(xx) - np.std(xx)),
                                np.ones(2) * (np.mean(xx) + np.std(xx)),
-                               color=c.colors[i], alpha=0.2)
+                               color=c.colors[0], alpha=0.2)
 
     for i, rat in enumerate(control_rats):
         ax[i, 1].set_title(rat)
         ax[i, 1].set_xlim(x_lim)
         ax[i, 1].set_ylim(y_lim)
         xx, yy, pp = zip(*peaks[rat])
-        ax[i, 1].scatter(xx, yy, s=10, color=c.colors[len(ohda_rats) + i])
-        ax[i, 1].axvline(np.mean(xx), color=c.colors[len(ohda_rats) + i],
+        cnum = 1
+        ax[i, 1].scatter(xx, yy, s=10, color=c.colors[cnum])
+        ax[i, 1].axvline(np.mean(xx), color=c.colors[cnum],
                          alpha=1)
         ax[i, 1].fill_betweenx(ax[i, 1].get_ylim(),
                                np.ones(2) * (np.mean(xx) - np.std(xx)),
                                np.ones(2) * (np.mean(xx) + np.std(xx)),
-                               color=c.colors[len(ohda_rats) + i], alpha=0.2)
+                               color=c.colors[cnum], alpha=0.2)
 
     ax[0, 0].annotate('6-OHDA rats', xy=(0, 0), va='center', ha='center',
                       xycoords=ax[0, 0].title, xytext=(0.5, 2.2), fontsize=14)
     ax[0, 1].annotate('control rats', xy=(0, 0), va='center', ha='center',
                       xycoords=ax[0, 1].title, xytext=(0.5, 2.2), fontsize=14)
-    ax[3, 1].axis('off')
+    for j in range(len(control_rats), len(ohda_rats)):
+        ax[j, 1].axis('off')
     fig.suptitle('Most prominent peak location and height%s' % title_remark,
                  fontsize=14)
     fig.tight_layout()
