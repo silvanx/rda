@@ -497,7 +497,7 @@ class MainWindow(QtWidgets.QMainWindow):
             max_150 = max(spectrum_signal[f_signal <= 150]) * 1.05
             self.psd_plot.axes.set_ylim([0, max_150])
         self.psd_plot.axes.set_xlabel('Frequency [Hz]')
-        self.psd_plot.axes.set_title('PSD')
+        self.psd_plot.axes.set_title('PSD (fs = %d)' % fs)
 
         self.psd_plot.fig.tight_layout()
         self.psd_plot.draw()
