@@ -483,7 +483,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.time_plot.fig.tight_layout()
         self.time_plot.draw()
 
-        fs = 20000
+        fs = int(np.ceil(1/(tt[1] - tt[0])))
         if slice_q.count() == 1:
             start_sample = int(highlight_start * fs)
             end_sample = int((highlight_stop) * fs)
