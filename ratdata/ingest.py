@@ -53,7 +53,7 @@ def extract_info_from_filename(filename: str) -> tuple[str, str, str]:
 def extract_stim_type_from_filename(filename: str) -> str:
     random_regex = r'.* random\.mat$'
     on_off_regex = r'.* on-off.*\.mat$'
-    continuous_regex = r'.* (130Hz|open-loop|DBS)\.mat$'
+    continuous_regex = r'.* (130Hz|open-loop|DBS|no)\.mat$'
     proportional_regex = r'.* pro\.mat$'
     low_regex = r'.* low\.mat$'
     low20_regex = r'.* low20\.mat$'
