@@ -65,10 +65,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.all_conditions = dm.get_condition_labels()
         self.all_rats = dm.get_rat_labels()
         self.all_stims = dm.get_stim_types()
-        # self.all_rats = [None, 'rat1', 'rat2', 'rat3', 'rat5']
-        # self.all_conditions = [None, 'baseline', 'ST', 'CT', 'OFT']
-        # self.all_stims = [None, 'nostim', 'continuous', 'on-off',
-        #                   'random', 'proportional']
 
         self.time_slices = ingest.read_file_slices(self.time_slices_file)
 

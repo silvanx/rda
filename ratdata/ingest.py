@@ -12,6 +12,7 @@ class Recording:
     electrode_data: np.ndarray
     filename: str = ''
     dt: float = None
+    scale: float = 1
     time_of_recording: np.datetime_as_string = None
     rat_label: str = None
     recording_type: str = None
@@ -176,6 +177,7 @@ def read_mce_matlab_file(filename: str) -> Recording:
         data = file.get(key)
         dt = data.get('interval')[0][0]
         samples = int(data.get('length')[0][0])
+        scale = float(data.get('scale')[0][0])
 
         raw_values = np.array(data.get('values')[0])
         if i == 0:
@@ -196,7 +198,7 @@ def read_mce_matlab_file(filename: str) -> Recording:
 
     pulse_periods = periods_from_start_stop(pulse_start, pulse_stop)
 
-    result = Recording(electrode_data, filename, dt, time_of_recording,
+    result = Recording(electrode_data, filename, dt, scale, time_of_recording,
                        rat_label, recording_type, stim_periods, pulse_periods)
     return result
 
