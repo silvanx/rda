@@ -335,8 +335,9 @@ def create_pulse_template(rec: ingest.Recording,
     return template
 
 
-def subtract_template(data, template):
+def subtract_template(data, template, blank=True):
     align = template.align
+    blank_template = np.zeros(template.template.shape)
     half_template_length = int(np.floor(template.length / 2))
     if template.channels == 1:
         data = np.mean(data, axis=0)
@@ -350,9 +351,15 @@ def subtract_template(data, template):
                         s_n = s + max_location - half_template_length
                         e_n = s_n + template.length
                     if s_n > 0 and e_n < len(data) and len(d) > 0:
-                        data[s_n:e_n] -= template.template
+                        if blank:
+                            data[s_n:e_n] = blank_template
+                        else:
+                            data[s_n:e_n] -= template.template
                 else:
-                    data[s:e] -= template.template
+                    if blank:
+                        data[s:e] = blank_template
+                    else:
+                        data[s:e] -= template.template
     elif template.channels > 1:
         for s in template.start:
             e = s + template.length
@@ -365,7 +372,13 @@ def subtract_template(data, template):
                             s_n = s + max_location - half_template_length
                             e_n = s_n + template.length
                         if s_n > 0 and e_n < data.shape[1] and len(d) > 0:
-                            data[i, s_n:e_n] -= template.template[i, :]
+                            if blank:
+                                data[i, s_n:e_n] = blank_template[i, :]
+                            else:
+                                data[i, s_n:e_n] -= template.template[i, :]
                 else:
-                    data[:, s:e] -= template.template
+                    if blank:
+                        data[:, s:e] = blank_template
+                    else:
+                        data[:, s:e] -= template.template
     return data

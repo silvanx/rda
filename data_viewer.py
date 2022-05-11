@@ -73,6 +73,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.pulse_template = None
         self.subtract_pulse = False
+        self.blank_pulse = False
 
         # Matplotlib edit toolbar
         toolbar = NavigationToolbar(self.time_plot, self)
@@ -411,7 +412,8 @@ class MainWindow(QtWidgets.QMainWindow):
             tt = np.linspace(0, samples * data.dt, samples)
             if self.subtract_pulse:
                 x = process.subtract_template(data.electrode_data,
-                                              self.pulse_template)
+                                              self.pulse_template,
+                                              self.blank_pulse)
             else:
                 x = data.electrode_data
             if len(x.shape) > 1:
@@ -612,9 +614,10 @@ class MainWindow(QtWidgets.QMainWindow):
             return ''
         return self.file_list[self.current_file].split('.')[0]
 
-    def subtract_template(self, template: PulseTemplate) -> None:
+    def subtract_template(self, template: PulseTemplate, blank=False) -> None:
         self.pulse_template = template
         self.subtract_pulse = True
+        self.blank_pulse = blank
         filename = Path(self.file_list[self.current_file])
         full_filename = Path(self.file_dir) / filename.name
         if self.stim_pulse_window.start_markers is not None:
@@ -715,7 +718,13 @@ class StimPulseWindow(QtWidgets.QMainWindow):
         self.subtract_template_button.setText("Subtract template")
         self.subtract_template_button.clicked.connect(
             self.subtract_current_template)
+        self.blank_template_button = QtWidgets.QPushButton()
+        self.blank_template_button.setText("Blank pulse")
+        self.blank_template_button.clicked.connect(
+            self.blank_pulse)
         subtract_template_area.addWidget(self.subtract_template_button,
+                                         stretch=5)
+        subtract_template_area.addWidget(self.blank_template_button,
                                          stretch=5)
 
         plot_area = QtWidgets.QVBoxLayout()
@@ -906,7 +915,7 @@ class StimPulseWindow(QtWidgets.QMainWindow):
         if data is not None:
             self.recording.filename = str(pathlib.Path(data.filename).stem)
 
-    def subtract_current_template(self):
+    def subtract_current_template(self, blank=False):
         if self.recording is None:
             self.error_box("No recording selected")
             return
@@ -921,7 +930,10 @@ class StimPulseWindow(QtWidgets.QMainWindow):
             channels = self.recording.electrode_data.shape[0]
         template = PulseTemplate(self.template_length, channels,
                                  self.template, start, self.template_align)
-        self.parent().subtract_template(template)
+        self.parent().subtract_template(template, blank)
+
+    def blank_pulse(self):
+        self.subtract_current_template(blank=True)
 
 
 if __name__ == '__main__':
