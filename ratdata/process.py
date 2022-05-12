@@ -335,7 +335,12 @@ def create_pulse_template(rec: ingest.Recording,
     return template
 
 
-def subtract_template(data, template, blank=True):
+def linear_interpolate(start, end, length):
+    dx = (end - start) / (length - 1)
+    return np.array([start + i * dx for i in range(length)])
+
+
+def subtract_template(data, template, blank=False, interpolate=True):
     align = template.align
     blank_template = np.zeros(template.template.shape)
     half_template_length = int(np.floor(template.length / 2))
@@ -352,12 +357,18 @@ def subtract_template(data, template, blank=True):
                         e_n = s_n + template.length
                     if s_n > 0 and e_n < len(data) and len(d) > 0:
                         if blank:
-                            data[s_n:e_n] = blank_template
+                            data[s_n:e_n] = (
+                                linear_interpolate(data[s_n], data[e_n],
+                                                   template.length)
+                                if interpolate else blank_template)
                         else:
                             data[s_n:e_n] -= template.template
                 else:
                     if blank:
-                        data[s:e] = blank_template
+                        data[s:e] = (
+                            linear_interpolate(data[s], data[e],
+                                               template.length)
+                            if interpolate else blank_template)
                     else:
                         data[s:e] -= template.template
     elif template.channels > 1:
@@ -373,12 +384,20 @@ def subtract_template(data, template, blank=True):
                             e_n = s_n + template.length
                         if s_n > 0 and e_n < data.shape[1] and len(d) > 0:
                             if blank:
-                                data[i, s_n:e_n] = blank_template[i, :]
+                                data[i, s_n:e_n] = (
+                                    linear_interpolate(data[i, s_n],
+                                                       data[i, e_n],
+                                                       template.length)
+                                    if interpolate else blank_template)
                             else:
                                 data[i, s_n:e_n] -= template.template[i, :]
                 else:
                     if blank:
-                        data[:, s:e] = blank_template
+                        data[:, s:e] = (
+                            linear_interpolate(data[:, s],
+                                               data[:, e],
+                                               template.length).T
+                            if interpolate else blank_template)
                     else:
                         data[:, s:e] -= template.template
     return data
