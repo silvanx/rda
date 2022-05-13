@@ -47,7 +47,7 @@ def plot_beta_one_rat(rat_full_label: str, img_filename: str = None,
         if remove_oof:
             m = f.power.get().oof_exponent
             b = f.power.get().oof_constant
-            oof = process.oof_power_in_frequency_band(m, b, 12, 18)
+            oof = process.oof_power_in_frequency_band(m, b, 14, 18)
             power = f.power.get().beta_power - oof
             plot_title = 'Absolute beta power %s (without 1/f component)'\
                 % (rat_full_label)

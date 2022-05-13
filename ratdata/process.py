@@ -7,7 +7,7 @@ from ratdata import data_manager as dm, ingest, process
 
 def power_in_frequency_band(data: np.ndarray, low: float, high: float,
                             fs: int) -> float:
-    f, pxx = signal.welch(data, fs, nperseg=fs)
+    f, pxx = signal.welch(data, fs, nperseg=2 * fs)
     idx = np.logical_and(f >= low, f <= high)
     f_res = f[1] - f[0]
     power = integrate.trapz(pxx[idx], dx=f_res)
