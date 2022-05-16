@@ -78,6 +78,16 @@ class RecordingSlice(Model):
         database = database_proxy
 
 
+class GuiAmplitude(Model):
+    recording = ForeignKeyField(RecordingFile, backref='gui_amplitude',
+                                unique=True)
+    offset = FloatField(default=0)
+    file = TextField()
+
+    class Meta:
+        database = database_proxy
+
+
 def db_connect(db_filename: str) -> None:
     database_proxy.initialize(SqliteDatabase(db_filename))
 
@@ -86,7 +96,7 @@ def db_create_tables() -> None:
     database_proxy.connect()
     database_proxy.create_tables([Rat, RecordingFile, StimSettings,
                                   RecordingBaseline, RecordingPower,
-                                  RecordingSlice])
+                                  RecordingSlice, GuiAmplitude])
     database_proxy.close()
 
 
