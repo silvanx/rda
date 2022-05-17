@@ -1,5 +1,4 @@
 import pathlib
-import pickle
 import re
 import sys
 from datetime import datetime
@@ -45,7 +44,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__(*args, **kwargs)
 
         self.file_dir = 'data/mce_recordings'
-        self.time_slices_file = Path(self.file_dir) / 'time_slices.pickle'
+        # self.time_slices_file = Path(self.file_dir) / 'time_slices.pickle'
         self.db_file = 'rat_data.db'
 
         dm.db_connect(self.db_file)
@@ -59,15 +58,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.oof_params_updated = False
         self.oof_equation = None
 
-        self.welch_window_length = 1
+        self.welch_window_length = 2
 
         self.file_list = self.populate_file_list()
 
         self.all_conditions = dm.get_condition_labels()
         self.all_rats = dm.get_rat_labels()
         self.all_stims = dm.get_stim_types()
-
-        self.time_slices = ingest.read_file_slices(self.time_slices_file)
 
         self.time_plot = MplCanvas(self, width=5, height=4, dpi=100)
         self.psd_plot = MplCanvas(self, width=5, height=3, dpi=100)
@@ -98,16 +95,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.start_slice_input = QtWidgets.QLineEdit()
         self.length_slice_input = QtWidgets.QLineEdit()
         update_slice_button = QtWidgets.QPushButton("Update selection")
-        reject_file_button = QtWidgets.QPushButton("Reject file")
+        self.reject_file_button = QtWidgets.QPushButton("Reject file")
         slice_selection.addWidget(QtWidgets.QLabel("Slice start:"))
         slice_selection.addWidget(self.start_slice_input)
         slice_selection.addWidget(QtWidgets.QLabel("Slice length:"))
         slice_selection.addWidget(self.length_slice_input)
         slice_selection.addWidget(update_slice_button)
-        slice_selection.addWidget(reject_file_button)
+        slice_selection.addWidget(self.reject_file_button)
         slice_selection.addWidget(show_stim_spikes_button)
         update_slice_button.clicked.connect(self.update_selected_slice)
-        reject_file_button.clicked.connect(self.reject_file)
+        self.reject_file_button.clicked.connect(self.reject_file)
         self.start_slice_input.returnPressed.connect(
             self.update_selected_slice)
         self.length_slice_input.returnPressed.connect(
@@ -334,12 +331,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 currentItem.setIcon(QtGui.QIcon(r'scissors.png'))
             else:
                 currentItem.setIcon(QtGui.QIcon(r'empty.png'))
-            # file_key = file.split('.')[0]
-            # if file_key in self.time_slices:
-            #     # if 'reject' in self.time_slices[file_key]:
-            #     #     currentItem.setIcon(QtGui.QIcon(r"stop.png"))
-            #     # else:
-            #     currentItem.setIcon(QtGui.QIcon(r"scissors.png"))
 
     def plot_clicked_file(self):
         if len(self.file_list_widget.selectedItems()) > 0:
@@ -410,7 +401,9 @@ class MainWindow(QtWidgets.QMainWindow):
             data = ingest.read_mce_matlab_file(filename)
             data.slice = dm.get_recording_slice(file.name)
             # ATTENTION: JANK!
-            if datetime.strptime(data.time_of_recording, '%Y-%m-%dT%H-%M-%S') > datetime(2022, 3, 23):
+            rec_time = datetime.strptime(data.time_of_recording,
+                                         '%Y-%m-%dT%H-%M-%S')
+            if rec_time > datetime(2022, 3, 23):
                 data.electrode_data *= 256
             samples = data.electrode_data.shape[1]
             tt = np.linspace(0, samples * data.dt, samples)
@@ -460,6 +453,7 @@ class MainWindow(QtWidgets.QMainWindow):
         #     self.update_plot(tt, x, file)
 
     def update_plot(self, tt, x, file):
+        self.reject_file_button.setText('Reject file')
         self.time_plot.axes.cla()
         self.time_plot.axes.plot(tt, x)
         self.time_plot.axes.set_xlabel('Time [s]')
@@ -475,6 +469,7 @@ class MainWindow(QtWidgets.QMainWindow):
             highlight_start = slice.start
             highlight_stop = slice.start + slice.length
             if slice.recording_rejected:
+                self.reject_file_button.setText('Restore file')
                 c = 'red'
             else:
                 c = 'green'
@@ -552,24 +547,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def reject_file(self):
         filename = Path(self.file_list[self.current_file])
-        file_key = filename.stem
         max_t = np.ceil(max(self.time_plot.axes.lines[0].get_xdata()))
-        dm.update_slice(filename.name, 0, max_t, True)
-        if file_key in self.time_slices:
-            self.time_slices[file_key]['reject'] = True
-            self.time_slices[file_key]['start'] = 0.0
-            self.time_slices[file_key]['length'] = max_t
+        if dm.is_recording_rejected(filename.name):
+            s = dm.RecordingSlice.select().join(dm.RecordingFile)\
+                .where(dm.RecordingFile.filename == filename.name)
+            if s.count() == 1:
+                s.get().delete_instance()
+            self.file_list_widget.selectedItems()[0].setIcon(
+                QtGui.QIcon(r'empty.png'))
         else:
-            slice = {
-                'start': 0.0,
-                'length': max_t,
-                'reject': True
-            }
-            self.time_slices[file_key] = slice
-        self.file_list_widget.selectedItems()[0].setIcon(
-                QtGui.QIcon(r"stop.png"))
-        with open(self.time_slices_file, mode='wb') as f:
-            pickle.dump(self.time_slices, f)
+            dm.update_slice(filename.name, 0, max_t, True)
+            self.file_list_widget.selectedItems()[0].setIcon(
+                QtGui.QIcon(r'stop.png'))
         full_filename = Path(self.file_dir) / filename.name
         self.plot_data_from_file(full_filename)
 
@@ -591,21 +580,16 @@ class MainWindow(QtWidgets.QMainWindow):
         if start is not None and start < max_t:
             if length is None or start + length > max_t:
                 length = max_t - start
-            self.time_slices[filename.stem] = {'start': start,
-                                               'length': length}
             dm.update_slice(filename.name, start, length, False)
             self.file_list_widget.selectedItems()[0].setIcon(
                 QtGui.QIcon(r'scissors.png'))
         else:
-            if filename.stem in self.time_slices:
-                self.time_slices.pop(filename.stem)
-            self.file_list_widget.selectedItems()[0].setIcon(QtGui.QIcon(r'empty.png'))
+            self.file_list_widget.selectedItems()[0].setIcon(
+                QtGui.QIcon(r'empty.png'))
             s = dm.RecordingSlice.select().join(dm.RecordingFile)\
                 .where(dm.RecordingFile.filename == filename.name)
             if s.count() == 1:
                 s.get().delete_instance()
-        with open(self.time_slices_file, mode='wb') as f:
-            pickle.dump(self.time_slices, f)
         full_filename = Path(self.file_dir) / filename.name
         self.plot_data_from_file(full_filename)
 
