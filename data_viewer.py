@@ -615,9 +615,14 @@ class MainWindow(QtWidgets.QMainWindow):
         return self.file_list[self.current_file].split('.')[0]
 
     def subtract_template(self, template: PulseTemplate, blank=False) -> None:
-        self.pulse_template = template
-        self.subtract_pulse = True
-        self.blank_pulse = blank
+        if self.subtract_pulse or self.blank_pulse:
+            self.pulse_template = None
+            self.subtract_pulse = False
+            self.blank_pulse = False
+        else:
+            self.pulse_template = template
+            self.subtract_pulse = True
+            self.blank_pulse = blank
         filename = Path(self.file_list[self.current_file])
         full_filename = Path(self.file_dir) / filename.name
         if self.stim_pulse_window.start_markers is not None:
@@ -930,6 +935,12 @@ class StimPulseWindow(QtWidgets.QMainWindow):
             channels = self.recording.electrode_data.shape[0]
         template = PulseTemplate(self.template_length, channels,
                                  self.template, start, self.template_align)
+        if self.parent().subtract_pulse or self.parent().blank_pulse:
+            self.subtract_template_button.setText('Subtract template')
+            self.blank_template_button.setText('Blank pulse')
+        else:
+            self.subtract_template_button.setText('Undo')
+            self.blank_template_button.setText('Undo')
         self.parent().subtract_template(template, blank)
 
     def blank_pulse(self):
