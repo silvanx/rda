@@ -335,7 +335,13 @@ def create_pulse_template(rec: ingest.Recording,
     return template
 
 
-def linear_interpolate(start, end, length):
+def compute_percentage_time_on(amplitude_data: np.ndarray) -> float:
+    samplitude = np.sort(amplitude_data)
+    index = np.where(samplitude > 0)[0][0]
+    return 1 - index / len(samplitude)
+
+
+def linear_interpolate(start: float, end: float, length: int) -> np.ndarray:
     dx = (end - start) / (length - 1)
     return np.array([start + i * dx for i in range(length)])
 

@@ -108,7 +108,15 @@ class TestDataProcessing(unittest.TestCase):
         self.assertEqual(len(tt), len(trimmed))
         self.assertEqual(len(tt), slice_length * fs)
         self.assertAlmostEqual(sum(trimmed), 0.5)
-        
+
+
+    def test_compute_percentage_time_on(self):
+        data = np.zeros(200)
+        data[50:150] = 1
+        data2 = np.zeros(200)
+        data2[0:50] = 1
+        self.assertEqual(process.compute_percentage_time_on(data), 0.5)        
+        self.assertEqual(process.compute_percentage_time_on(data2), 0.25)        
     
 
 if __name__ == '__main__':
