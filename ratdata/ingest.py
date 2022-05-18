@@ -5,6 +5,7 @@ import re
 import h5py
 import pathlib
 import pickle
+from datetime import datetime
 
 
 @dataclass
@@ -118,6 +119,14 @@ def read_mce_matlab_file(filename: str) -> Recording:
     time_of_recording, rat_label, recording_type = \
         extract_info_from_filename(filename)
 
+    # ATTENTION! JANK!
+    rec_time = datetime.strptime(time_of_recording,
+                                 '%Y-%m-%dT%H-%M-%S')
+    if rec_time > datetime(2022, 3, 23):
+        data_scale = 256
+    else:
+        data_scale = 1
+
     field_names = {
         'E:E1': {
             'regex': '^E:E1$',
@@ -182,7 +191,7 @@ def read_mce_matlab_file(filename: str) -> Recording:
         raw_values = np.array(data.get('values')[0])
         if i == 0:
             electrode_data = np.zeros((4, samples))
-        electrode_data[i, :] = raw_values
+        electrode_data[i, :] = data_scale * raw_values
 
     stim_start = export_stim_events(file,
                                     field_names['STG 1 Start']['name'])

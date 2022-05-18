@@ -1,7 +1,6 @@
 import pathlib
 import re
 import sys
-from datetime import datetime
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -400,11 +399,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if re.match(r'^\.mat$', file.suffix):
             data = ingest.read_mce_matlab_file(filename)
             data.slice = dm.get_recording_slice(file.name)
-            # ATTENTION: JANK!
-            rec_time = datetime.strptime(data.time_of_recording,
-                                         '%Y-%m-%dT%H-%M-%S')
-            if rec_time > datetime(2022, 3, 23):
-                data.electrode_data *= 256
             samples = data.electrode_data.shape[1]
             tt = np.linspace(0, samples * data.dt, samples)
             if self.subtract_pulse:
