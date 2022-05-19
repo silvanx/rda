@@ -34,8 +34,10 @@ def plot_beta_one_rat_one_condition(rat_full_label: str, cond: str,
 
 
 def plot_beta_one_rat(rat_full_label: str, img_filename: str = None,
-                      remove_oof: bool = False) -> None:
-    label_order = ['nostim', 'continuous', 'on-off', 'random']
+                      remove_oof: bool = False, low: float = 14,
+                      high: float = 18) -> None:
+    label_order = ['nostim', 'continuous', 'on-off', 'random',
+                   'proportional', 'low', 'low20']
     rat = dm.Rat().get(full_label=rat_full_label)
     rec_array = dm.RecordingFile.select().where(dm.RecordingFile.rat == rat)
     if rec_array.count() == 0:
@@ -47,13 +49,13 @@ def plot_beta_one_rat(rat_full_label: str, img_filename: str = None,
         if remove_oof:
             m = f.power.get().oof_exponent
             b = f.power.get().oof_constant
-            oof = process.oof_power_in_frequency_band(m, b, 14, 18)
+            oof = process.oof_power_in_frequency_band(m, b, low, high)
             power = f.power.get().beta_power - oof
-            plot_title = 'Absolute beta power %s (without 1/f component)'\
+            plot_title = 'Beta power %s (without 1/f component)'\
                 % (rat_full_label)
         else:
             power = f.power.get().beta_power
-            plot_title = 'Absolute beta power %s' % (rat_full_label)
+            plot_title = 'Beta power %s' % (rat_full_label)
         if f.stim.count() == 0:
             stim = 'nostim'
         else:
@@ -70,11 +72,171 @@ def plot_beta_one_rat(rat_full_label: str, img_filename: str = None,
     save_or_show(fig, img_filename)
 
 
-def plot_relative_beta_one_rat_one_condition(rat_full_label: str,
-                                             cond: str,
-                                             img_filename: str = None) -> None:
+def plot_change_relative_beta_one_rat(rat_full_label: str,
+                                      img_filename: str = None,
+                                      remove_oof: bool = False,
+                                      low: float = 14,
+                                      high: float = 18, total_low: float = 10,
+                                      total_high: float = 100) -> None:
+    label_order = ['nostim', 'continuous', 'on-off', 'random',
+                   'proportional', 'low', 'low20']
     rat = dm.Rat().get(full_label=rat_full_label)
-    stim_array = ['nostim', 'continuous', 'on-off', 'random']
+    rec_array = dm.RecordingFile.select().where(dm.RecordingFile.rat == rat)
+    if rec_array.count() == 0:
+        return
+    plot_data = []
+    for f in rec_array:
+        if dm.is_recording_rejected(f.filename):
+            continue
+        if f.baseline.count() == 0:
+            continue
+        f_baseline = f.baseline.get().baseline
+        if remove_oof:
+            if f.power.count() < 1 or f_baseline.power.count() < 1:
+                continue
+            m = f.power.get().oof_exponent
+            b = f.power.get().oof_constant
+            oof = process.oof_power_in_frequency_band(m, b, low, high)
+            total_oof = process.oof_power_in_frequency_band(m, b, total_low,
+                                                            total_high)
+            rec_rpower = ((f.power.get().beta_power - oof) /
+                          (f.power.get().total_power - total_oof))
+            m_base = f_baseline.power.get().oof_exponent
+            b_base = f_baseline.power.get().oof_constant
+            oof_base = process.oof_power_in_frequency_band(m, b, low, high)
+            total_oof_base = process.oof_power_in_frequency_band(m_base,
+                                                                 b_base,
+                                                                 total_low,
+                                                                 total_high)
+            baseline_rpower = ((f_baseline.power.get().beta_power - oof_base) /
+                               (f_baseline.power.get().total_power -
+                                total_oof_base))
+
+            plot_title = ('Change in relative beta power %s '
+                          '(without 1/f component)') % (rat_full_label)
+        else:
+            rec_rpower = f.power.get().beta_power / f.power.get().total_power
+            baseline_rpower = (f_baseline.power.get().beta_power /
+                               f_baseline.power.get().total_power)
+            plot_title = 'Change in relative beta power %s' % (rat_full_label)
+        if f.stim.count() == 0:
+            stim = 'nostim'
+        else:
+            stim = f.stim.get().stim_type
+        plot_data.append([rec_rpower / baseline_rpower, stim,
+                          f.filename, f.file_id])
+    df = pd.DataFrame(plot_data)
+    df.columns = ['power', 'stim', 'filename', 'file_id']
+    fig = plt.figure(figsize=(12, 6))
+    sns.boxplot(x='stim', y='power', data=df, palette='Dark2',
+                order=label_order, boxprops=dict(alpha=.8))
+    sns.swarmplot(x='stim', y='power', data=df, s=4, palette='Dark2',
+                  order=label_order)
+    plt.title(plot_title)
+    save_or_show(fig, img_filename)
+    return df
+
+
+def plot_relative_beta_one_rat(rat_full_label: str, img_filename: str = None,
+                               remove_oof: bool = False, low: float = 14,
+                               high: float = 18, total_low: float = 10,
+                               total_high: float = 100) -> None:
+    label_order = ['nostim', 'continuous', 'on-off', 'random',
+                   'proportional', 'low', 'low20']
+    rat = dm.Rat().get(full_label=rat_full_label)
+    rec_array = dm.RecordingFile.select().where(dm.RecordingFile.rat == rat)
+    if rec_array.count() == 0:
+        return
+    plot_data = []
+    for f in rec_array:
+        if dm.is_recording_rejected(f.filename):
+            continue
+        if remove_oof:
+            m = f.power.get().oof_exponent
+            b = f.power.get().oof_constant
+            oof = process.oof_power_in_frequency_band(m, b, low, high)
+            total_oof = process.oof_power_in_frequency_band(m, b, total_low,
+                                                            total_high)
+            power = f.power.get().beta_power - oof
+            total_power = f.power.get().total_power - total_oof
+            plot_title = 'Relative beta power %s (without 1/f component)'\
+                % (rat_full_label)
+        else:
+            power = f.power.get().beta_power
+            total_power = f.power.get().total_power
+            plot_title = 'Relative beta power %s' % (rat_full_label)
+        if f.stim.count() == 0:
+            stim = 'nostim'
+        else:
+            stim = f.stim.get().stim_type
+        plot_data.append([power / total_power, stim, f.filename, f.file_id])
+    df = pd.DataFrame(plot_data)
+    df.columns = ['power', 'stim', 'filename', 'file_id']
+    fig = plt.figure(figsize=(12, 6))
+    sns.boxplot(x='stim', y='power', data=df, palette='Dark2',
+                order=label_order, boxprops=dict(alpha=.8))
+    sns.swarmplot(x='stim', y='power', data=df, s=4, palette='Dark2',
+                  order=label_order)
+    plt.title(plot_title)
+    save_or_show(fig, img_filename)
+
+
+def plot_beta_change_one_rat(rat_full_label: str, img_filename: str = None,
+                             remove_oof: bool = False, low: float = 14,
+                             high: float = 18) -> None:
+    label_order = ['nostim', 'continuous', 'on-off', 'random']
+    rat = dm.Rat().get(full_label=rat_full_label)
+    rec_array = dm.RecordingFile.select().where(dm.RecordingFile.rat == rat)
+    if rec_array.count() == 0:
+        return
+    plot_data = []
+    for f in rec_array:
+        if dm.is_recording_rejected(f.filename):
+            continue
+        if f.baseline.count() == 0:
+            continue
+        f_baseline = f.baseline.get().baseline
+        if remove_oof:
+            m = f.power.get().oof_exponent
+            b = f.power.get().oof_constant
+            m_baseline = f_baseline.power.get().oof_exponent
+            b_baseline = f_baseline.power.get().oof_constant
+            oof = process.oof_power_in_frequency_band(m, b, low, high)
+            oof_baseline =\
+                process.oof_power_in_frequency_band(m_baseline, b_baseline,
+                                                    low, high)
+            power = f.power.get().beta_power - oof
+            power_baseline = f_baseline.power.get().beta_power - oof_baseline
+            plot_title =\
+                'Beta power %s change wrt baseline (without 1/f component)'\
+                % (rat_full_label)
+        else:
+            power = f.power.get().beta_power
+            power_baseline = f_baseline.power.get().beta_power
+            plot_title = 'Beta power %s change wrt baseline' % (rat_full_label)
+        if f.stim.count() == 0:
+            stim = 'nostim'
+        else:
+            stim = f.stim.get().stim_type
+        plot_data.append([(power / power_baseline), stim,
+                          f.filename])
+    df = pd.DataFrame(plot_data)
+    df.columns = ['power', 'stim', 'filename']
+    fig = plt.figure(figsize=(12, 6))
+    sns.boxplot(x='stim', y='power', data=df, palette='Dark2',
+                order=label_order, boxprops=dict(alpha=.8))
+    sns.swarmplot(x='stim', y='power', data=df, s=4, palette='Dark2',
+                  order=label_order)
+    plt.title(plot_title)
+    save_or_show(fig, img_filename)
+
+
+def plot_relative_beta_one_rat_condition(rat_full_label: str,
+                                         cond: str,
+                                         img_filename: str = None) -> None:
+    rat = dm.Rat().get(full_label=rat_full_label)
+    stim_array = ['nostim', 'continuous', 'on-off', 'random', 'proportional',
+                  'low', 'low20']
     boxplot_data = []
     for stim in stim_array:
         rec_array = dm.select_recordings_for_rat(rat, cond, stim)
@@ -86,10 +248,10 @@ def plot_relative_beta_one_rat_one_condition(rat_full_label: str,
     boxplot_all_stim(boxplot_data, stim_array, plot_title, img_filename)
 
 
-def plot_change_in_absolute_beta(rat_full_label: str,
-                                 cond: str,
-                                 img_filename: str = None,
-                                 remove_oof: bool = False) -> None:
+def plot_change_beta_one_rat_condition(rat_full_label: str,
+                                       cond: str,
+                                       img_filename: str = None,
+                                       remove_oof: bool = False) -> None:
     rat = dm.Rat().get(full_label=rat_full_label)
     stim_array = ['nostim', 'continuous', 'on-off', 'random']
     boxplot_data = []
@@ -105,11 +267,13 @@ def plot_change_in_absolute_beta(rat_full_label: str,
     boxplot_all_stim(boxplot_data, stim_array, plot_title, img_filename)
 
 
-def plot_change_in_relative_beta(rat_full_label: str,
-                                 cond: str,
-                                 img_filename: str = None) -> None:
+def plot_change_relative_beta_one_rat_condition(rat_full_label: str,
+                                                cond: str,
+                                                img_filename: str = None)\
+                                                    -> None:
     rat = dm.Rat().get(full_label=rat_full_label)
-    stim_array = ['nostim', 'continuous', 'on-off', 'random']
+    stim_array = ['nostim', 'continuous', 'on-off', 'random', 'proportional',
+                  'low', 'low20']
     boxplot_data = []
     plot_title = 'Change in relative beta power %s %s' % (rat_full_label, cond)
     for stim in stim_array:
@@ -287,7 +451,7 @@ def plot_biomarker_steps(data: np.ndarray, fs: int,
 def plot_amplitude_with_percentiles(plot_data: np.ndarray, tstart: float = 0,
                                     tstop: float = None,
                                     fs: int = 200) -> None:
-    p10 = np.percentile(plot_data, 10)
+    # p10 = np.percentile(plot_data, 10)
     p20 = np.percentile(plot_data, 20)
     plt.figure(figsize=(20, 10), dpi=100)
     if tstop is None or tstop * fs > len(plot_data):
@@ -299,7 +463,7 @@ def plot_amplitude_with_percentiles(plot_data: np.ndarray, tstart: float = 0,
     plt.ylabel('Amplitude [uA]')
     plt.axhline(np.mean(plot_data), linestyle='-', color='k')
     plt.axhline(p20, linestyle='--', color='k')
-    plt.axhline(p10, linestyle=':', color='k')
+    # plt.axhline(p10, linestyle=':', color='k')
     plt.legend(['stim amplitude [uA]', 'mean amplitude',
                 '20th percentile', '10th percentile'])
 
