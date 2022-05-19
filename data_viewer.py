@@ -451,9 +451,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.time_plot.axes.cla()
         self.time_plot.axes.plot(tt, x)
         self.time_plot.axes.set_xlabel('Time [s]')
-        self.time_plot.axes.set_title(file.stem)
         slice_q = dm.RecordingSlice.select().join(dm.RecordingFile)\
             .where(dm.RecordingFile.filename == file.name)
+        file_id = dm.RecordingFile.get(filename=file.name).file_id
+        self.time_plot.axes.set_title('(%d) %s' % (file_id, file.stem))
         if slice_q.count() == 1:
             slice = slice_q.get()
             self.start_slice_input.clear()
