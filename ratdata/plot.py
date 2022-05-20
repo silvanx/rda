@@ -64,9 +64,9 @@ def plot_beta_one_rat(rat_full_label: str, img_filename: str = None,
     df = pd.DataFrame(plot_data)
     df.columns = ['power', 'stim']
     fig = plt.figure(figsize=(12, 6))
-    sns.boxplot(x='stim', y='power', data=df, palette='Dark2',
+    sns.boxplot(x='stim', y='power', data=df, palette='Set2',
                 order=label_order, boxprops=dict(alpha=.8))
-    sns.swarmplot(x='stim', y='power', data=df, s=4, palette='Dark2',
+    sns.swarmplot(x='stim', y='power', data=df, s=4, palette='Set2',
                   order=label_order)
     plt.title(plot_title)
     save_or_show(fig, img_filename)
@@ -128,9 +128,9 @@ def plot_change_relative_beta_one_rat(rat_full_label: str,
     df = pd.DataFrame(plot_data)
     df.columns = ['power', 'stim', 'filename', 'file_id']
     fig = plt.figure(figsize=(12, 6))
-    sns.boxplot(x='stim', y='power', data=df, palette='Dark2',
+    sns.boxplot(x='stim', y='power', data=df, palette='Set2',
                 order=label_order, boxprops=dict(alpha=.8))
-    sns.swarmplot(x='stim', y='power', data=df, s=4, palette='Dark2',
+    sns.swarmplot(x='stim', y='power', data=df, s=4, palette='Set2',
                   order=label_order)
     plt.title(plot_title)
     save_or_show(fig, img_filename)
@@ -173,9 +173,9 @@ def plot_relative_beta_one_rat(rat_full_label: str, img_filename: str = None,
     df = pd.DataFrame(plot_data)
     df.columns = ['power', 'stim', 'filename', 'file_id']
     fig = plt.figure(figsize=(12, 6))
-    sns.boxplot(x='stim', y='power', data=df, palette='Dark2',
+    sns.boxplot(x='stim', y='power', data=df, palette='Set2',
                 order=label_order, boxprops=dict(alpha=.8))
-    sns.swarmplot(x='stim', y='power', data=df, s=4, palette='Dark2',
+    sns.swarmplot(x='stim', y='power', data=df, s=4, palette='Set2',
                   order=label_order)
     plt.title(plot_title)
     save_or_show(fig, img_filename)
@@ -223,9 +223,9 @@ def plot_beta_change_one_rat(rat_full_label: str, img_filename: str = None,
     df = pd.DataFrame(plot_data)
     df.columns = ['power', 'stim', 'filename']
     fig = plt.figure(figsize=(12, 6))
-    sns.boxplot(x='stim', y='power', data=df, palette='Dark2',
+    sns.boxplot(x='stim', y='power', data=df, palette='Set2',
                 order=label_order, boxprops=dict(alpha=.8))
-    sns.swarmplot(x='stim', y='power', data=df, s=4, palette='Dark2',
+    sns.swarmplot(x='stim', y='power', data=df, s=4, palette='Set2',
                   order=label_order)
     plt.title(plot_title)
     save_or_show(fig, img_filename)
@@ -473,7 +473,7 @@ def plot_peak_location_and_height(peaks: dict, title_remark: str,
                                   x_lim: list[float] = [11, 25],
                                   y_lim: list[float] = [-3e-5, 1.5e-4])\
                                       -> None:
-    c = plt.get_cmap('Dark2')
+    c = plt.get_cmap('Set2')
     control_rats = [r.full_label for r in
                     dm.Rat.select().where(dm.Rat.group == 'control')]
     ohda_rats = [r.full_label for r in
