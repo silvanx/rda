@@ -6,6 +6,19 @@ import pandas as pd
 import seaborn as sns
 
 
+set2_colors = plt.colormaps.get('Set2').colors
+my_palette = {
+    'nostim': set2_colors[0],
+    'continuous': set2_colors[1],
+    'on-off': set2_colors[2],
+    'random': set2_colors[3],
+    'proportional': set2_colors[4],
+    'low': set2_colors[5],
+    'low20': set2_colors[6],
+    'extra': set2_colors[7]
+}
+
+
 def plot_beta_one_rat_one_condition(rat_full_label: str, cond: str,
                                     img_filename: str = None,
                                     remove_oof: bool = False) -> None:
@@ -64,9 +77,9 @@ def plot_beta_one_rat(rat_full_label: str, img_filename: str = None,
     df = pd.DataFrame(plot_data)
     df.columns = ['power', 'stim']
     fig = plt.figure(figsize=(12, 6))
-    sns.boxplot(x='stim', y='power', data=df, palette='Set2',
+    sns.boxplot(x='stim', y='power', data=df, palette=my_palette,
                 order=label_order, boxprops=dict(alpha=.8))
-    sns.swarmplot(x='stim', y='power', data=df, s=4, palette='Set2',
+    sns.swarmplot(x='stim', y='power', data=df, s=4, palette=my_palette,
                   order=label_order)
     plt.title(plot_title)
     save_or_show(fig, img_filename)
@@ -128,9 +141,9 @@ def plot_change_relative_beta_one_rat(rat_full_label: str,
     df = pd.DataFrame(plot_data)
     df.columns = ['power', 'stim', 'filename', 'file_id']
     fig = plt.figure(figsize=(12, 6))
-    sns.boxplot(x='stim', y='power', data=df, palette='Set2',
+    sns.boxplot(x='stim', y='power', data=df, palette=my_palette,
                 order=label_order, boxprops=dict(alpha=.8))
-    sns.swarmplot(x='stim', y='power', data=df, s=4, palette='Set2',
+    sns.swarmplot(x='stim', y='power', data=df, s=4, palette=my_palette,
                   order=label_order)
     plt.title(plot_title)
     save_or_show(fig, img_filename)
@@ -173,9 +186,9 @@ def plot_relative_beta_one_rat(rat_full_label: str, img_filename: str = None,
     df = pd.DataFrame(plot_data)
     df.columns = ['power', 'stim', 'filename', 'file_id']
     fig = plt.figure(figsize=(12, 6))
-    sns.boxplot(x='stim', y='power', data=df, palette='Set2',
+    sns.boxplot(x='stim', y='power', data=df, palette=my_palette,
                 order=label_order, boxprops=dict(alpha=.8))
-    sns.swarmplot(x='stim', y='power', data=df, s=4, palette='Set2',
+    sns.swarmplot(x='stim', y='power', data=df, s=4, palette=my_palette,
                   order=label_order)
     plt.title(plot_title)
     save_or_show(fig, img_filename)
@@ -223,9 +236,9 @@ def plot_beta_change_one_rat(rat_full_label: str, img_filename: str = None,
     df = pd.DataFrame(plot_data)
     df.columns = ['power', 'stim', 'filename']
     fig = plt.figure(figsize=(12, 6))
-    sns.boxplot(x='stim', y='power', data=df, palette='Set2',
+    sns.boxplot(x='stim', y='power', data=df, palette=my_palette,
                 order=label_order, boxprops=dict(alpha=.8))
-    sns.swarmplot(x='stim', y='power', data=df, s=4, palette='Set2',
+    sns.swarmplot(x='stim', y='power', data=df, s=4, palette=my_palette,
                   order=label_order)
     plt.title(plot_title)
     save_or_show(fig, img_filename)
@@ -319,7 +332,7 @@ def plot_baseline_across_time(rat_full_label: str,
             plot_date.append(rec.recording_date)
 
     fig = plt.figure(figsize=(12, 6))
-    plt.plot(plot_date, plot_power, '.-')
+    plt.plot(plot_date, plot_power, '.-', color=my_palette['nostim'])
     plt.title('Baseline relative beta for %s' % rat_full_label)
 
     save_or_show(fig, img_filename)
@@ -361,11 +374,13 @@ def plot_relative_beta_one_day_one_rat(day: datetime.date,
                    (dm.RecordingFile.rat == rat) &
                    (dm.StimSettings.stim_type == 'nostim'))\
             .order_by(dm.RecordingFile.filename)
+        bar_color = my_palette['nostim']
     else:
         recordings = dm.RecordingFile.select()\
             .where((dm.RecordingFile.recording_date == day) &
                    (dm.RecordingFile.rat == rat))\
             .order_by(dm.RecordingFile.filename)
+        bar_color = my_palette['extra']
     if recordings.count() > 0:
         recordings = dm.RecordingFile.select()\
             .where((dm.RecordingFile.recording_date == day) &
@@ -380,7 +395,7 @@ def plot_relative_beta_one_day_one_rat(day: datetime.date,
             if rbeta:
                 fig = plt.figure(figsize=(12, 6))
                 ax = plt.gca()
-                plt.bar(range(len(rbeta)), rbeta)
+                plt.bar(range(len(rbeta)), rbeta, color=bar_color)
                 ax.set_xticks(range(len(rbeta)))
                 ax.set_xticklabels(label)
                 plt.title('Relative beta power for %s on %s' %
