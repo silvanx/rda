@@ -17,6 +17,7 @@ my_palette = {
     'low20': set2_colors[6],
     'extra': set2_colors[7]
 }
+boxplot_alpha = 0.7
 
 
 def plot_beta_one_rat_one_condition(rat_full_label: str, cond: str,
@@ -78,7 +79,7 @@ def plot_beta_one_rat(rat_full_label: str, img_filename: str = None,
     df.columns = ['power', 'stim']
     fig = plt.figure(figsize=(12, 6))
     sns.boxplot(x='stim', y='power', data=df, palette=my_palette,
-                order=label_order, boxprops=dict(alpha=.8))
+                order=label_order, boxprops=dict(alpha=boxplot_alpha))
     sns.swarmplot(x='stim', y='power', data=df, s=4, palette=my_palette,
                   order=label_order)
     plt.title(plot_title)
@@ -142,7 +143,7 @@ def plot_change_relative_beta_one_rat(rat_full_label: str,
     df.columns = ['power', 'stim', 'filename', 'file_id']
     fig = plt.figure(figsize=(12, 6))
     sns.boxplot(x='stim', y='power', data=df, palette=my_palette,
-                order=label_order, boxprops=dict(alpha=.8))
+                order=label_order, boxprops=dict(alpha=boxplot_alpha))
     sns.swarmplot(x='stim', y='power', data=df, s=4, palette=my_palette,
                   order=label_order)
     plt.title(plot_title)
@@ -187,7 +188,7 @@ def plot_relative_beta_one_rat(rat_full_label: str, img_filename: str = None,
     df.columns = ['power', 'stim', 'filename', 'file_id']
     fig = plt.figure(figsize=(12, 6))
     sns.boxplot(x='stim', y='power', data=df, palette=my_palette,
-                order=label_order, boxprops=dict(alpha=.8))
+                order=label_order, boxprops=dict(alpha=boxplot_alpha))
     sns.swarmplot(x='stim', y='power', data=df, s=4, palette=my_palette,
                   order=label_order)
     plt.title(plot_title)
@@ -237,7 +238,7 @@ def plot_beta_change_one_rat(rat_full_label: str, img_filename: str = None,
     df.columns = ['power', 'stim', 'filename']
     fig = plt.figure(figsize=(12, 6))
     sns.boxplot(x='stim', y='power', data=df, palette=my_palette,
-                order=label_order, boxprops=dict(alpha=.8))
+                order=label_order, boxprops=dict(alpha=boxplot_alpha))
     sns.swarmplot(x='stim', y='power', data=df, s=4, palette=my_palette,
                   order=label_order)
     plt.title(plot_title)
