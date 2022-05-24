@@ -536,3 +536,18 @@ def plot_peak_location_and_height(peaks: dict, title_remark: str,
     plt.subplots_adjust(wspace=0.23, top=0.92)
 
     save_or_show(fig, plot_filename)
+
+
+def plot_behaviour_data(df: pd.DataFrame, label_order: list[str],
+                        plot_title: str, filename: str = None) -> None:
+    fig = plt.figure(figsize=(12, 6))
+    sns.boxplot(x='variable', y='value', order=label_order, data=df,
+                palette=my_palette, boxprops=dict(alpha=boxplot_alpha))
+    sns.swarmplot(x='variable', y='value', data=df, palette=my_palette,
+                  order=label_order)
+    plt.ylim([7, 70])
+    plt.title(plot_title)
+    plt.xlabel('Stimulation')
+    plt.ylabel('Contralateral paw use [%]')
+
+    save_or_show(fig, filename)
