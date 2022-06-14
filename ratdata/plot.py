@@ -469,7 +469,7 @@ def plot_amplitude_with_percentiles(plot_data: np.ndarray, tstart: float = 0,
                                     fs: int = 200) -> None:
     # p10 = np.percentile(plot_data, 10)
     p20 = np.percentile(plot_data, 20)
-    plt.figure(figsize=(20, 10), dpi=100)
+    plt.figure(figsize=(12, 6), dpi=100)
     if tstop is None or tstop * fs > len(plot_data):
         tstop = int(len(plot_data) / fs)
     ttn = (tstop - tstart) * fs
@@ -539,15 +539,55 @@ def plot_peak_location_and_height(peaks: dict, title_remark: str,
 
 
 def plot_behaviour_data(df: pd.DataFrame, label_order: list[str],
-                        plot_title: str, filename: str = None) -> None:
-    fig = plt.figure(figsize=(12, 6))
-    sns.boxplot(x='variable', y='value', order=label_order, data=df,
-                palette=my_palette, boxprops=dict(alpha=boxplot_alpha))
-    sns.swarmplot(x='variable', y='value', data=df, palette=my_palette,
-                  order=label_order)
-    plt.ylim([7, 70])
-    plt.title(plot_title)
-    plt.xlabel('Stimulation')
-    plt.ylabel('Contralateral paw use [%]')
+                        plot_title: str, filename: str = None,
+                        ylim=[7, 70], ax=None) -> None:
+    if ax is None:
+        fig = plt.figure(figsize=(12, 6))
+        sns.boxplot(x='variable', y='value', order=label_order, data=df,
+                    palette=my_palette, boxprops=dict(alpha=boxplot_alpha))
+        sns.swarmplot(x='variable', y='value', data=df, palette=my_palette,
+                      order=label_order)
+        ax = fig.axes[0]
+    else:
+        sns.boxplot(ax=ax, x='variable', y='value', order=label_order, data=df,
+                    palette=my_palette, boxprops=dict(alpha=boxplot_alpha))
+        sns.swarmplot(ax=ax, x='variable', y='value', data=df,
+                      palette=my_palette, order=label_order)
+    ax.set_ylim(ylim)
+    ax.set_title(plot_title)
+    ax.set_xlabel('Stimulation')
+    ax.set_ylabel('Contralateral paw use [%]')
 
+    save_or_show(fig, filename)
+
+
+def plot_all_behaviour_data(dfs: list[pd.DataFrame], labels_ohda: list[str],
+                            labels_sham: list[str], plot_titles: list[str],
+                            filename: str = None) -> None:
+    fig, axs = plt.subplots(3, 2, figsize=(18, 20))
+    for i, df in enumerate(dfs):
+        row = int(np.floor(i / 2))
+        col = i % 2
+        if col == 1:
+            labels = labels_sham
+        else:
+            labels = labels_ohda
+        sns.boxplot(ax=axs[row][col], x='variable', y='value',
+                    order=labels, data=df, palette=my_palette,
+                    boxprops=dict(alpha=boxplot_alpha))
+        sns.swarmplot(ax=axs[row][col], x='variable', y='value', data=df,
+                      palette=my_palette, order=labels)
+        if i < 4:
+            axs[row][col].set_ylim([5, 70])
+            axs[row][col].set_ylabel('Contralateral paw use [%]')
+        else:
+            axs[row][col].set_ylim([0, 4000])
+            axs[row][col].set_ylabel('Distance traveled [cm]')
+        axs[row][col].set_title(plot_titles[i])
+        axs[row][col].set_xlabel('Stimulation type')
+    fig.suptitle((
+        'Behaviour results from 6-OHDA and sham rats under cylinder test, '
+        'stepping test and open field test'), size=20)
+    fig.tight_layout()
+    plt.subplots_adjust(wspace=0.23, top=0.94)
     save_or_show(fig, filename)
