@@ -50,8 +50,8 @@ def plot_beta_one_rat_one_condition(rat_full_label: str, cond: str,
 def plot_beta_one_rat(rat_full_label: str, img_filename: str = None,
                       remove_oof: bool = False, low: float = 14,
                       high: float = 18) -> None:
-    label_order = ['nostim', 'continuous', 'on-off', 'random',
-                   'proportional', 'low', 'low20']
+    label_order = ['nostim', 'continuous', 'on-off', 'proportional', 'random',
+                   'low', 'low20']
     rat = dm.Rat().get(full_label=rat_full_label)
     rec_array = dm.RecordingFile.select().where(dm.RecordingFile.rat == rat)
     if rec_array.count() == 0:
@@ -92,8 +92,8 @@ def plot_change_relative_beta_one_rat(rat_full_label: str,
                                       low: float = 14,
                                       high: float = 18, total_low: float = 10,
                                       total_high: float = 100) -> None:
-    label_order = ['nostim', 'continuous', 'on-off', 'random',
-                   'proportional', 'low', 'low20']
+    label_order = ['nostim', 'continuous', 'on-off', 'proportional',
+                   'random', 'low', 'low20']
     rat = dm.Rat().get(full_label=rat_full_label)
     rec_array = dm.RecordingFile.select().where(dm.RecordingFile.rat == rat)
     if rec_array.count() == 0:
@@ -137,10 +137,10 @@ def plot_change_relative_beta_one_rat(rat_full_label: str,
             stim = 'nostim'
         else:
             stim = f.stim.get().stim_type
-        plot_data.append([rec_rpower / baseline_rpower, stim,
+        plot_data.append([rat_full_label, rec_rpower / baseline_rpower, stim,
                           f.filename, f.file_id])
     df = pd.DataFrame(plot_data)
-    df.columns = ['power', 'stim', 'filename', 'file_id']
+    df.columns = ['rat', 'power', 'stim', 'filename', 'file_id']
     fig = plt.figure(figsize=(12, 6))
     sns.boxplot(x='stim', y='power', data=df, palette=my_palette,
                 order=label_order, boxprops=dict(alpha=boxplot_alpha))
@@ -155,8 +155,8 @@ def plot_relative_beta_one_rat(rat_full_label: str, img_filename: str = None,
                                remove_oof: bool = False, low: float = 14,
                                high: float = 18, total_low: float = 10,
                                total_high: float = 100) -> None:
-    label_order = ['nostim', 'continuous', 'on-off', 'random',
-                   'proportional', 'low', 'low20']
+    label_order = ['nostim', 'continuous', 'on-off', 'proportional',
+                   'random', 'low', 'low20']
     rat = dm.Rat().get(full_label=rat_full_label)
     rec_array = dm.RecordingFile.select().where(dm.RecordingFile.rat == rat)
     if rec_array.count() == 0:
@@ -249,7 +249,7 @@ def plot_relative_beta_one_rat_condition(rat_full_label: str,
                                          cond: str,
                                          img_filename: str = None) -> None:
     rat = dm.Rat().get(full_label=rat_full_label)
-    stim_array = ['nostim', 'continuous', 'on-off', 'random', 'proportional',
+    stim_array = ['nostim', 'continuous', 'on-off', 'proportional', 'random',
                   'low', 'low20']
     boxplot_data = []
     for stim in stim_array:
@@ -286,7 +286,7 @@ def plot_change_relative_beta_one_rat_condition(rat_full_label: str,
                                                 img_filename: str = None)\
                                                     -> None:
     rat = dm.Rat().get(full_label=rat_full_label)
-    stim_array = ['nostim', 'continuous', 'on-off', 'random', 'proportional',
+    stim_array = ['nostim', 'continuous', 'on-off', 'proportional', 'random',
                   'low', 'low20']
     boxplot_data = []
     plot_title = 'Change in relative beta power %s %s' % (rat_full_label, cond)
