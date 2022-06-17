@@ -122,7 +122,7 @@ def read_mce_matlab_file(filename: str) -> Recording:
     # ATTENTION! JANK!
     rec_time = datetime.strptime(time_of_recording,
                                  '%Y-%m-%dT%H-%M-%S')
-    if rec_time > datetime(2022, 3, 23):
+    if rec_time > datetime(2022, 3, 23) and rec_time < datetime(2022, 6, 1):
         data_scale = 256
     else:
         data_scale = 1
