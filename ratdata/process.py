@@ -346,6 +346,84 @@ def linear_interpolate(start: float, end: float, length: int) -> np.ndarray:
     return np.array([start + i * dx for i in range(length)])
 
 
+def dsp_filter(b: np.ndarray, a: np.ndarray, filter_length: int,
+               x_previous: np.ndarray, y_previous: np.ndarray,
+               x_current: float):
+    if filter_length <= 0:
+        return
+    b_acc = b[0] * x_current
+    a_acc = 0
+    for i in range(1, filter_length):
+        b_acc += b[i] * x_previous[i - 1]
+        a_acc += a[i] * y_previous[i - 1]
+    y_current = b_acc - a_acc
+    y_previous = np.roll(y_previous, 1)
+    x_previous = np.roll(x_previous, 1)
+    y_previous[0] = y_current
+    x_previous[0] = x_current
+    return x_previous, y_previous
+
+
+def dsp_biomarker(data: np.ndarray) -> np.ndarray:
+    # First downsampling (Butterworth, lowpass, cutoff 0.1 (normalized))
+    a1 = [1, -2.37409474370935, 1.92935566909122, -0.532075368312092]
+    b1 = [0.00289819463372137, 0.00869458390116412, 0.00869458390116412,
+          0.00289819463372137]
+    decimation_factor1 = 10
+    # Second downsampling (Butterworth, lowpass, cutoff 0.25 (normalized))
+    a2 = [1, -1.45902906222806, 0.910369000290069, -0.197825187264319]
+    b2 = [0.0316893438497110, 0.0950680315491330, 0.0950680315491330,
+          0.0316893438497110]
+    decimation_factor2 = 4
+    # Beta extraction (Butterworth, bandpass, 13-30 Hz, assume fs = 500 Hz)
+    a3 = [1, -5.40212898354275, 12.3252130462259, -15.1987442456715,
+          10.6838109529814, -4.05972313481503, 0.651760197122122]
+    b3 = [0.000995173561555180, 0, -0.00298552068466554, 0,
+          0.00298552068466554, 0, -0.000995173561555180]
+
+    total_decimation = decimation_factor1 * decimation_factor2
+    lowpass_len = len(a1)
+    bandpass_len = len(a3)
+    y_previous1 = np.zeros(lowpass_len)
+    x_previous1 = np.zeros(lowpass_len)
+    y_previous2 = np.zeros(lowpass_len)
+    x_previous2 = np.zeros(lowpass_len)
+    y_previous3 = np.zeros(bandpass_len)
+    x_previous3 = np.zeros(bandpass_len)
+    power_segment_len = 50
+
+    history_len = int(np.ceil(len(data) / total_decimation))
+    full_beta_history = np.zeros(history_len)
+    full_total_history = np.zeros(history_len)
+    beta_power = np.zeros(len(data))
+    total_power = np.zeros(len(data))
+
+    for i, x_current in enumerate(data):
+        x_previous1, y_previous1 = dsp_filter(b1, a1, lowpass_len, x_previous1,
+                                              y_previous1, x_current)
+        y_current1 = y_previous1[0]
+        if i % decimation_factor1 == 0:
+            decimated1 = y_current1
+            x_previous2, y_previous2 = dsp_filter(b2, a2, lowpass_len,
+                                                  x_previous2, y_previous2,
+                                                  decimated1)
+            y_current2 = y_previous2[0]
+            if i % total_decimation == 0:
+                decimated2 = y_current2
+                x_previous3, y_previous3 = dsp_filter(b3, a3, bandpass_len,
+                                                      x_previous3, y_previous3,
+                                                      decimated2)
+                y_current3 = y_previous3[0]
+                history_index = int(i / total_decimation)
+                full_beta_history[history_index] = y_current3
+                full_total_history[history_index] = decimated2
+    power_window = np.ones(power_segment_len) / (power_segment_len)
+    beta_power = np.convolve(full_beta_history ** 2, power_window, 'same')
+    total_power = np.convolve(full_total_history ** 2, power_window, 'same')
+    biomarker = 1000 * beta_power / total_power
+    return biomarker
+
+
 def subtract_template(data, template, blank=False, interpolate=True):
     align = template.align
     blank_template = np.zeros(template.template.shape)
