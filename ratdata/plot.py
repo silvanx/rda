@@ -28,10 +28,16 @@ sham_ohda_palette['sham SNc'] = sham_ohda_palette['sham']
 sham_ohda_palette['sham striatum'] = sham_ohda_palette['sham']
 sham_ohda_palette['6-OHDA SNc'] = sham_ohda_palette['ohda']
 sham_ohda_palette['6-OHDA striatum'] = sham_ohda_palette['ohda']
-
-for rat in dm.Rat.select():
-    sham_ohda_palette[rat.full_label] = sham_ohda_palette['sham']\
-        if rat.group == 'control' else sham_ohda_palette['ohda']
+sham_ohda_palette['rat B1'] = sham_ohda_palette['ohda']
+sham_ohda_palette['rat B2'] = sham_ohda_palette['ohda']
+sham_ohda_palette['rat B3'] = sham_ohda_palette['ohda']
+sham_ohda_palette['rat C6'] = sham_ohda_palette['ohda']
+sham_ohda_palette['rat D1'] = sham_ohda_palette['ohda']
+sham_ohda_palette['rat D2'] = sham_ohda_palette['ohda']
+sham_ohda_palette['rat D4'] = sham_ohda_palette['ohda']
+sham_ohda_palette['rat A4'] = sham_ohda_palette['sham']
+sham_ohda_palette['rat B5'] = sham_ohda_palette['sham']
+sham_ohda_palette['rat C4'] = sham_ohda_palette['sham']
 
 
 def plot_beta_one_rat_one_condition(rat_full_label: str, cond: str,
