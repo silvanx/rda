@@ -7,7 +7,7 @@ import seaborn as sns
 
 
 set2_colors = plt.colormaps.get('Set2').colors
-my_palette = {
+stim_type_palette = {
     'nostim': set2_colors[0],
     'continuous': set2_colors[1],
     'on-off': set2_colors[2],
@@ -18,6 +18,20 @@ my_palette = {
     'extra': set2_colors[7]
 }
 boxplot_alpha = 0.7
+
+sham_ohda_palette = {
+    'sham': (69 / 255, 63 / 255, 60 / 255),
+    'ohda': (204 / 255, 68 / 255, 75 / 255),
+}
+
+sham_ohda_palette['sham SNc'] = sham_ohda_palette['sham']
+sham_ohda_palette['sham striatum'] = sham_ohda_palette['sham']
+sham_ohda_palette['6-OHDA SNc'] = sham_ohda_palette['ohda']
+sham_ohda_palette['6-OHDA striatum'] = sham_ohda_palette['ohda']
+
+for rat in dm.Rat.select():
+    sham_ohda_palette[rat.full_label] = sham_ohda_palette['sham']\
+        if rat.group == 'control' else sham_ohda_palette['ohda']
 
 
 def plot_beta_one_rat_one_condition(rat_full_label: str, cond: str,
@@ -78,9 +92,9 @@ def plot_beta_one_rat(rat_full_label: str, img_filename: str = None,
     df = pd.DataFrame(plot_data)
     df.columns = ['power', 'stim']
     fig = plt.figure(figsize=(12, 6))
-    sns.boxplot(x='stim', y='power', data=df, palette=my_palette,
+    sns.boxplot(x='stim', y='power', data=df, palette=stim_type_palette,
                 order=label_order, boxprops=dict(alpha=boxplot_alpha))
-    sns.swarmplot(x='stim', y='power', data=df, s=4, palette=my_palette,
+    sns.swarmplot(x='stim', y='power', data=df, s=4, palette=stim_type_palette,
                   order=label_order)
     plt.title(plot_title)
     save_or_show(fig, img_filename)
@@ -142,9 +156,9 @@ def plot_change_relative_beta_one_rat(rat_full_label: str,
     df = pd.DataFrame(plot_data)
     df.columns = ['rat', 'power', 'stim', 'filename', 'file_id']
     fig = plt.figure(figsize=(12, 6))
-    sns.boxplot(x='stim', y='power', data=df, palette=my_palette,
+    sns.boxplot(x='stim', y='power', data=df, palette=stim_type_palette,
                 order=label_order, boxprops=dict(alpha=boxplot_alpha))
-    sns.swarmplot(x='stim', y='power', data=df, s=4, palette=my_palette,
+    sns.swarmplot(x='stim', y='power', data=df, s=4, palette=stim_type_palette,
                   order=label_order)
     plt.title(plot_title)
     save_or_show(fig, img_filename)
@@ -187,9 +201,9 @@ def plot_relative_beta_one_rat(rat_full_label: str, img_filename: str = None,
     df = pd.DataFrame(plot_data)
     df.columns = ['power', 'stim', 'filename', 'file_id']
     fig = plt.figure(figsize=(12, 6))
-    sns.boxplot(x='stim', y='power', data=df, palette=my_palette,
+    sns.boxplot(x='stim', y='power', data=df, palette=stim_type_palette,
                 order=label_order, boxprops=dict(alpha=boxplot_alpha))
-    sns.swarmplot(x='stim', y='power', data=df, s=4, palette=my_palette,
+    sns.swarmplot(x='stim', y='power', data=df, s=4, palette=stim_type_palette,
                   order=label_order)
     plt.title(plot_title)
     save_or_show(fig, img_filename)
@@ -237,9 +251,9 @@ def plot_beta_change_one_rat(rat_full_label: str, img_filename: str = None,
     df = pd.DataFrame(plot_data)
     df.columns = ['power', 'stim', 'filename']
     fig = plt.figure(figsize=(12, 6))
-    sns.boxplot(x='stim', y='power', data=df, palette=my_palette,
+    sns.boxplot(x='stim', y='power', data=df, palette=stim_type_palette,
                 order=label_order, boxprops=dict(alpha=boxplot_alpha))
-    sns.swarmplot(x='stim', y='power', data=df, s=4, palette=my_palette,
+    sns.swarmplot(x='stim', y='power', data=df, s=4, palette=stim_type_palette,
                   order=label_order)
     plt.title(plot_title)
     save_or_show(fig, img_filename)
@@ -333,7 +347,7 @@ def plot_baseline_across_time(rat_full_label: str,
             plot_date.append(rec.recording_date)
 
     fig = plt.figure(figsize=(12, 6))
-    plt.plot(plot_date, plot_power, '.-', color=my_palette['nostim'])
+    plt.plot(plot_date, plot_power, '.-', color=stim_type_palette['nostim'])
     plt.title('Baseline relative beta for %s' % rat_full_label)
 
     save_or_show(fig, img_filename)
@@ -375,13 +389,13 @@ def plot_relative_beta_one_day_one_rat(day: datetime.date,
                    (dm.RecordingFile.rat == rat) &
                    (dm.StimSettings.stim_type == 'nostim'))\
             .order_by(dm.RecordingFile.filename)
-        bar_color = my_palette['nostim']
+        bar_color = stim_type_palette['nostim']
     else:
         recordings = dm.RecordingFile.select()\
             .where((dm.RecordingFile.recording_date == day) &
                    (dm.RecordingFile.rat == rat))\
             .order_by(dm.RecordingFile.filename)
-        bar_color = my_palette['extra']
+        bar_color = stim_type_palette['extra']
     if recordings.count() > 0:
         recordings = dm.RecordingFile.select()\
             .where((dm.RecordingFile.recording_date == day) &
@@ -413,7 +427,7 @@ def plot_relative_beta_one_day_one_rat(day: datetime.date,
 def save_or_show(fig: plt.Figure, filename: str = None) -> None:
     plt.figure(fig)
     if filename is not None:
-        plt.savefig(filename, facecolor='white', bbox_inches='tight')
+        plt.savefig(filename, facecolor='white', bbox_inches='tight', dpi=200)
         plt.close(fig)
     else:
         plt.show()
@@ -544,15 +558,17 @@ def plot_behaviour_data(df: pd.DataFrame, label_order: list[str],
     if ax is None:
         fig = plt.figure(figsize=(12, 6))
         sns.boxplot(x='variable', y='value', order=label_order, data=df,
-                    palette=my_palette, boxprops=dict(alpha=boxplot_alpha))
-        sns.swarmplot(x='variable', y='value', data=df, palette=my_palette,
-                      order=label_order)
+                    palette=stim_type_palette,
+                    boxprops=dict(alpha=boxplot_alpha))
+        sns.swarmplot(x='variable', y='value', data=df,
+                      palette=stim_type_palette, order=label_order)
         ax = fig.axes[0]
     else:
         sns.boxplot(ax=ax, x='variable', y='value', order=label_order, data=df,
-                    palette=my_palette, boxprops=dict(alpha=boxplot_alpha))
+                    palette=stim_type_palette,
+                    boxprops=dict(alpha=boxplot_alpha))
         sns.swarmplot(ax=ax, x='variable', y='value', data=df,
-                      palette=my_palette, order=label_order)
+                      palette=stim_type_palette, order=label_order)
     ax.set_ylim(ylim)
     ax.set_title(plot_title)
     ax.set_xlabel('Stimulation')
@@ -573,10 +589,10 @@ def plot_all_behaviour_data(dfs: list[pd.DataFrame], labels_ohda: list[str],
         else:
             labels = labels_ohda
         sns.boxplot(ax=axs[row][col], x='variable', y='value',
-                    order=labels, data=df, palette=my_palette,
+                    order=labels, data=df, palette=stim_type_palette,
                     boxprops=dict(alpha=boxplot_alpha))
         sns.swarmplot(ax=axs[row][col], x='variable', y='value', data=df,
-                      palette=my_palette, order=labels)
+                      palette=stim_type_palette, order=labels)
         if i < 4:
             axs[row][col].set_ylim([5, 70])
             axs[row][col].set_ylabel('Contralateral paw use [%]')
@@ -591,3 +607,36 @@ def plot_all_behaviour_data(dfs: list[pd.DataFrame], labels_ohda: list[str],
     fig.tight_layout()
     plt.subplots_adjust(wspace=0.23, top=0.94)
     save_or_show(fig, filename)
+
+
+def plot_peak_info(df: pd.DataFrame, var: str,
+                   ohda_rats: list[str], sham_rats: list[str],
+                   filename: str,
+                   ylim: list[float], figsize: tuple[int]) -> None:
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize,
+                                   gridspec_kw={
+                                       'width_ratios': [len(ohda_rats),
+                                                        len(sham_rats)]})
+    sns.boxplot(data=df, x='full_label', y=var,
+                order=ohda_rats, boxprops=dict(alpha=boxplot_alpha), ax=ax1,
+                palette=sham_ohda_palette)
+    sns.swarmplot(data=df, x='full_label', y=var,
+                  order=ohda_rats, ax=ax1, palette=sham_ohda_palette)
+    sns.boxplot(data=df, x='full_label', y=var,
+                order=sham_rats, boxprops=dict(alpha=boxplot_alpha), ax=ax2,
+                palette=sham_ohda_palette)
+    sns.swarmplot(data=df, x='full_label', y=var,
+                  order=sham_rats, ax=ax2, palette=sham_ohda_palette)
+    ax1.set_xlabel('Rat')
+    ax2.set_xlabel('Rat')
+    ax1.set_ylabel('Peak location [Hz]')
+    ax2.set_ylabel(None)
+    ax1.set_ylim(ylim)
+    ax2.set_ylim(ylim)
+    fig.suptitle('Most significant peak locations in baseline recordings')
+    ax1.set_title('Parkinsonian rats')
+    ax2.set_title('Sham rats')
+    plt.subplots_adjust(wspace=0.1, top=0.92)
+    save_or_show(fig, filename)
+    # plt.savefig('plots/blinded_power_spectra/0_peak_locations_baseline.png',
+    # bbox_inches='tight', dpi=250)
