@@ -433,7 +433,7 @@ def plot_relative_beta_one_day_one_rat(day: datetime.date,
 def save_or_show(fig: plt.Figure, filename: str = None) -> None:
     plt.figure(fig)
     if filename is not None:
-        plt.savefig(filename, facecolor='white', bbox_inches='tight', dpi=200)
+        plt.savefig(filename, facecolor='white', bbox_inches='tight', dpi=500)
         plt.close(fig)
     else:
         plt.show()
@@ -489,7 +489,7 @@ def plot_amplitude_with_percentiles(plot_data: np.ndarray, tstart: float = 0,
                                     fs: int = 200) -> None:
     # p10 = np.percentile(plot_data, 10)
     p20 = np.percentile(plot_data, 20)
-    plt.figure(figsize=(12, 6), dpi=100)
+    plt.figure(figsize=(12, 6), dpi=500)
     if tstop is None or tstop * fs > len(plot_data):
         tstop = int(len(plot_data) / fs)
     ttn = (tstop - tstart) * fs
@@ -639,10 +639,8 @@ def plot_peak_info(df: pd.DataFrame, var: str,
     ax2.set_ylabel(None)
     ax1.set_ylim(ylim)
     ax2.set_ylim(ylim)
-    fig.suptitle('Most significant peak locations in baseline recordings')
+    # fig.suptitle('Most significant peak locations in baseline recordings')
     ax1.set_title('Parkinsonian rats')
     ax2.set_title('Sham rats')
     plt.subplots_adjust(wspace=0.1, top=0.92)
     save_or_show(fig, filename)
-    # plt.savefig('plots/blinded_power_spectra/0_peak_locations_baseline.png',
-    # bbox_inches='tight', dpi=250)
