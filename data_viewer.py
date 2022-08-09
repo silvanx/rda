@@ -449,7 +449,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def update_plot(self, tt, x, file):
         self.reject_file_button.setText('Reject file')
         self.time_plot.axes.cla()
-        self.time_plot.axes.plot(tt, x)
+        self.time_plot.axes.plot(tt, -x)
         self.time_plot.axes.set_xlabel('Time [s]')
         slice_q = dm.RecordingSlice.select().join(dm.RecordingFile)\
             .where(dm.RecordingFile.filename == file.name)
@@ -472,6 +472,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                               highlight_start,
                                               highlight_stop,
                                               color=c, alpha=0.2)
+        self.time_plot.axes.set_ylabel('Amplitude [mV]')
         self.time_plot.fig.tight_layout()
         self.time_plot.draw()
 
