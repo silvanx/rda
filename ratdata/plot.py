@@ -443,7 +443,9 @@ def plot_relative_beta_one_day_one_rat(day: datetime.date,
 def save_or_show(fig: plt.Figure, filename: str = None) -> None:
     plt.figure(fig)
     if filename is not None:
-        plt.savefig(filename, facecolor='white', bbox_inches='tight', dpi=500)
+        plt.savefig('.'.join([filename, 'png']), facecolor='white',
+                    bbox_inches='tight', dpi=500)
+        plt.savefig('.'.join([filename, 'svg']), bbox_inches='tight')
         plt.close(fig)
     else:
         plt.show()

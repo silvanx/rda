@@ -269,7 +269,11 @@ def mean_stim_amplitude_from_gui_recording(rat_label, max_amplitude,
     amplitude_dict = dict()
     for f in files:
         recording_date = f.name.split('T')[0]
-        a = max_amplitude[recording_date][rat_label]
+        try:
+            a = max_amplitude[recording_date][rat_label]
+        except KeyError:
+            print('No amplitude data for %s' % f.name)
+            continue
         data = ingest.read_stim_amplitude_from_gui_recording(f, a)
         if recording_date in amplitude_dict:
             amplitude_dict[recording_date] = np.append(
