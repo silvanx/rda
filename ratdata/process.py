@@ -1,8 +1,54 @@
+
 import scipy.signal as signal
 import scipy.integrate as integrate
 import scipy.interpolate as interpolate
 import numpy as np
 from ratdata import data_manager as dm, ingest, process
+import pywt
+
+
+def resample_interpolate(data: np.ndarray, fs: float,
+                         target_fs: float) -> np.ndarray:
+    n = len(data)
+    t_max = n / fs
+    ratio = fs / target_fs
+    tt1 = np.linspace(0, t_max, n)
+    tt2 = np.linspace(0, t_max, int(n/ratio))
+    b, a = signal.butter(6, 2 * np.pi / ratio, btype='low', analog=False)
+    filtered = signal.filtfilt(b, a, data)
+    interpolated = interpolate.interp1d(tt1, filtered, kind='cubic')
+    return interpolated(tt2)
+
+
+def beta_envelope(data: np.ndarray, fs: float, target_fs: float = 300
+                  ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    downsampled_data = resample_interpolate(data, fs, target_fs)
+    filtered = highpass_filter(downsampled_data, target_fs, 1)
+    if target_fs != 300:
+        raise NotImplementedError
+    wavelets, _ = pywt.cwt(filtered, 15.15, 'morl',
+                           sampling_period=(1/target_fs))
+    rectified = np.abs(wavelets[0])
+    smoothed_rectified = np.convolve(rectified, np.ones(20)) / 20
+    analytic = signal.hilbert(wavelets[0])
+    envelope = np.abs(analytic)
+    smoothed_envelope = np.convolve(envelope, np.ones(20)) / 20
+    return (wavelets[0], smoothed_envelope, smoothed_rectified)
+
+
+def beta_bursts(envelope: np.ndarray, threshold: float):
+    beta_r = envelope - threshold
+    crossings = np.where(np.diff(np.sign(beta_r)))[0]
+    bursts = []
+    last_start = None
+    last_end = None
+    for c in crossings:
+        if beta_r[c] < 0 and beta_r[c + 1] > 0:
+            last_start = c
+        if beta_r[c] > 0 and beta_r[c + 1] < 0 and last_start is not None:
+            last_end = c
+            bursts.append((last_start, last_end))
+    return bursts
 
 
 def power_in_frequency_band(data: np.ndarray, low: float, high: float,
