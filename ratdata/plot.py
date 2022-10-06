@@ -7,17 +7,27 @@ import seaborn as sns
 
 
 set2_colors = plt.colormaps.get('Set2').colors
+# stim_type_palette = {
+#     'nostim': set2_colors[0],  # a5a5a5
+#     'continuous': set2_colors[1],  # 051923
+#     'on-off': set2_colors[2],  # 006494
+#     'random': set2_colors[3],  # 415d43
+#     'proportional': set2_colors[4],  # 00a6fb
+#     'low': set2_colors[5],  # 709775
+#     'low20': set2_colors[6],  # a1cca5
+#     'extra': set2_colors[7]  # f9dc5c
+# }
 stim_type_palette = {
-    'nostim': set2_colors[0],
-    'continuous': set2_colors[1],
-    'on-off': set2_colors[2],
-    'random': set2_colors[3],
-    'proportional': set2_colors[4],
-    'low': set2_colors[5],
-    'low20': set2_colors[6],
-    'extra': set2_colors[7]
+    'nostim': (179 / 255, 54 / 255, 0 / 255),
+    'continuous': (24 / 255, 93 / 255, 139 / 255),
+    'on-off': (52 / 255, 152 / 255, 219 / 255),
+    'low': (16 / 255, 206 / 255, 16 / 255),
+    'proportional': (80 / 255, 202 / 255, 237 / 255),
+    'random': (112 / 255, 175 / 255, 26 / 255),
+    'low20': (183 / 255, 188 / 255, 9 / 255),
+    'extra': (249 / 255, 220 / 255, 92 / 255)
 }
-boxplot_alpha = 0.7
+boxplot_alpha = 0.6
 
 sham_ohda_palette = {
     'sham': (69 / 255, 63 / 255, 60 / 255),
