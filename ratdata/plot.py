@@ -18,7 +18,7 @@ set2_colors = plt.colormaps.get('Set2').colors
 #     'extra': set2_colors[7]  # f9dc5c
 # }
 stim_type_palette = {
-    'nostim': (179 / 255, 54 / 255, 0 / 255),
+    'nostim': (0 / 255, 0 / 255, 0 / 255),
     'continuous': (24 / 255, 93 / 255, 139 / 255),
     'on-off': (52 / 255, 152 / 255, 219 / 255),
     'low': (16 / 255, 206 / 255, 16 / 255),
@@ -30,8 +30,8 @@ stim_type_palette = {
 boxplot_alpha = 0.6
 
 sham_ohda_palette = {
-    'sham': (69 / 255, 63 / 255, 60 / 255),
-    'ohda': (204 / 255, 68 / 255, 75 / 255),
+    'sham': (101 / 255, 7 / 255, 125 / 255),
+    'ohda': (250 / 255, 164 / 255, 15 / 255),
 }
 
 sham_ohda_palette['sham SNc'] = sham_ohda_palette['sham']
@@ -579,14 +579,14 @@ def plot_behaviour_data(df: pd.DataFrame, label_order: list[str],
                     palette=stim_type_palette,
                     boxprops=dict(alpha=boxplot_alpha))
         sns.swarmplot(x='variable', y='value', data=df,
-                      palette=stim_type_palette, order=label_order)
+                      palette=stim_type_palette, order=label_order, size=8)
         ax = fig.axes[0]
     else:
         sns.boxplot(ax=ax, x='variable', y='value', order=label_order, data=df,
                     palette=stim_type_palette,
                     boxprops=dict(alpha=boxplot_alpha))
         sns.swarmplot(ax=ax, x='variable', y='value', data=df,
-                      palette=stim_type_palette, order=label_order)
+                      palette=stim_type_palette, order=label_order, size=8)
     ax.set_ylim(ylim)
     ax.set_title(plot_title)
     ax.set_xlabel('Stimulation')
@@ -610,7 +610,7 @@ def plot_all_behaviour_data(dfs: list[pd.DataFrame], labels_ohda: list[str],
                     order=labels, data=df, palette=stim_type_palette,
                     boxprops=dict(alpha=boxplot_alpha))
         sns.swarmplot(ax=axs[row][col], x='variable', y='value', data=df,
-                      palette=stim_type_palette, order=labels)
+                      palette=stim_type_palette, order=labels, size=8)
         if i < 4:
             axs[row][col].set_ylim([5, 70])
             axs[row][col].set_ylabel('Contralateral paw use [%]')
