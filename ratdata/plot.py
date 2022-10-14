@@ -1,22 +1,11 @@
 import datetime
 import matplotlib.pyplot as plt
-from ratdata import data_manager as dm, process, ingest
+from ratdata import data_manager as dm, process
 import numpy as np
 import pandas as pd
 import seaborn as sns
 
 
-set2_colors = plt.colormaps.get('Set2').colors
-# stim_type_palette = {
-#     'nostim': set2_colors[0],  # a5a5a5
-#     'continuous': set2_colors[1],  # 051923
-#     'on-off': set2_colors[2],  # 006494
-#     'random': set2_colors[3],  # 415d43
-#     'proportional': set2_colors[4],  # 00a6fb
-#     'low': set2_colors[5],  # 709775
-#     'low20': set2_colors[6],  # a1cca5
-#     'extra': set2_colors[7]  # f9dc5c
-# }
 stim_type_palette = {
     'nostim': (0 / 255, 0 / 255, 0 / 255),
     'continuous': (24 / 255, 93 / 255, 139 / 255),
@@ -345,9 +334,6 @@ def boxplot_all_stim(boxplot_data: list[list[float]], x_labels: list[str],
 
 def plot_baseline_across_time(rat_full_label: str,
                               img_filename: str = None) -> None:
-    time_slices_file = 'data/mce_recordings/time_slices.pickle'
-    # Read time slices from the file
-    time_slices = ingest.read_file_slices(time_slices_file)
     rat = dm.Rat.get(full_label=rat_full_label)
     baseline_recordings = dm.RecordingFile.select()\
         .where((dm.RecordingFile.rat == rat) &
@@ -356,7 +342,7 @@ def plot_baseline_across_time(rat_full_label: str,
     plot_power = []
     plot_date = []
     for rec in baseline_recordings:
-        if not file_rejected(time_slices, rec.filename):
+        if not dm.is_recording_rejected(rec.filename):
             power_data = dm.RecordingPower.get(recording=rec)
             relative_power = power_data.beta_power / power_data.total_power
             plot_power.append(relative_power)
@@ -395,9 +381,6 @@ def plot_relative_beta_one_day_one_rat(day: datetime.date,
                                        rat: dm.Rat,
                                        filename_prefix: str = None,
                                        ignore_stim: bool = False) -> None:
-    time_slices_file = 'data/mce_recordings/time_slices.pickle'
-    # Read time slices from the file
-    time_slices = ingest.read_file_slices(time_slices_file)
     if ignore_stim:
         recordings = dm.RecordingFile.select()\
             .join(dm.StimSettings)\
@@ -420,7 +403,7 @@ def plot_relative_beta_one_day_one_rat(day: datetime.date,
         data_list = [(r.condition,
                       dm.RecordingPower.get(recording=r).beta_power)
                      for r in recordings
-                     if not file_rejected(time_slices, r.filename)]
+                     if not dm.is_recording_rejected(r.filename)]
         if data_list:
             label, rbeta = list(zip(*data_list))
             if rbeta:
@@ -432,9 +415,9 @@ def plot_relative_beta_one_day_one_rat(day: datetime.date,
                 plt.title('Relative beta power for %s on %s' %
                           (rat.full_label, day.strftime("%d %b %Y")))
                 if filename_prefix is not None:
-                    filename = '%s_%s_%s.png' % (filename_prefix,
-                                                 rat.full_label,
-                                                 day.strftime("%Y%m%d"))
+                    filename = '%s_%s_%s' % (filename_prefix,
+                                             rat.full_label,
+                                             day.strftime("%Y%m%d"))
                 else:
                     filename = None
                 save_or_show(fig, filename)
