@@ -36,7 +36,8 @@ def beta_envelope(data: np.ndarray, fs: float, target_fs: float = 300
     return (wavelets[0], smoothed_envelope, smoothed_rectified)
 
 
-def beta_bursts(envelope: np.ndarray, threshold: float):
+def beta_bursts(envelope: np.ndarray,
+                threshold: float) -> list[tuple[int, int, float]]:
     beta_r = envelope - threshold
     crossings = np.where(np.diff(np.sign(beta_r)))[0]
     bursts = []
@@ -47,7 +48,8 @@ def beta_bursts(envelope: np.ndarray, threshold: float):
             last_start = c
         if beta_r[c] > 0 and beta_r[c + 1] < 0 and last_start is not None:
             last_end = c
-            bursts.append((last_start, last_end))
+            amplitude = np.max(beta_r[last_start: last_end])
+            bursts.append((last_start, last_end, amplitude))
     return bursts
 
 

@@ -639,3 +639,44 @@ def plot_peak_info(df: pd.DataFrame, var: str,
     ax2.set_title('Sham rats')
     plt.subplots_adjust(wspace=0.1, top=0.92)
     save_or_show(fig, filename)
+
+
+def plot_beta_bursts_one_rat(rat_bursts, rat_type, filename=None):
+    rat = rat_bursts['rat']
+    perc = rat_bursts['perc']
+    max_amplitude = 6
+    max_duration = 3
+    fig, axs = plt.subplots(3, 3, figsize=(17, 17))
+    order = {
+        'continuous': (0, 1),
+        'on-off': (0, 0),
+        'random': (1, 0),
+        'proportional': (0, 2),
+        'nostim': (2, 0),
+        'low20': (1, 2),
+        'low': (1, 1)
+    }
+    for st in order:
+        plot_i = order[st]
+        amplitude = rat_bursts[st]['amplitudes']
+        duration = rat_bursts[st]['durations']
+        if len(amplitude) == 0:
+            axs[plot_i].axis('off')
+        else:
+            c = stim_type_palette[st]
+            axs[plot_i].scatter(duration, amplitude, color=c)
+            axs[plot_i].set_title(st)
+            # if len(amplitude) > 0 and max(amplitude) > max_amplitude:
+            #     max_amplitude = max(amplitude)
+            # if len(duration) > 0 and max(duration) > max_duration:
+            #     max_duration = max(duration)
+            axs[plot_i].set_xlabel('Duration')
+            axs[plot_i].set_ylabel('Amplitude')
+    fig.suptitle(f'{rat} ({rat_type}): threshold @ {perc}th percentile')
+    for ax_place in order.values():
+        axs[ax_place].set_xlim([-0.1 * max_duration, max_duration * 1.1])
+        axs[ax_place].set_ylim([-0.1 * max_amplitude, max_amplitude * 1.1])
+    for ax_place in [(2, 1), (2, 2)]:
+        axs[ax_place].axis('off')
+
+    save_or_show(fig, filename)
