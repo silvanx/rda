@@ -26,14 +26,19 @@ def beta_envelope(data: np.ndarray, fs: float, target_fs: float = 300
     filtered = highpass_filter(downsampled_data, target_fs, 1)
     if target_fs != 300:
         raise NotImplementedError
-    wavelets, _ = pywt.cwt(filtered, 15.15, 'morl',
+    # ~14-~18 Hz
+    # scales = np.linspace(13.55, 17.4, 8)
+    # ~13-~30 Hz
+    scales = np.linspace(8.15, 18.75, 34)
+    wavelets, _ = pywt.cwt(filtered, scales, 'morl',
                            sampling_period=(1/target_fs))
-    rectified = np.abs(wavelets[0])
+    averaged = np.mean(wavelets, axis=0)
+    rectified = np.abs(averaged)
     smoothed_rectified = np.convolve(rectified, np.ones(20)) / 20
-    analytic = signal.hilbert(wavelets[0])
+    analytic = signal.hilbert(averaged)
     envelope = np.abs(analytic)
     smoothed_envelope = np.convolve(envelope, np.ones(20)) / 20
-    return (wavelets[0], smoothed_envelope, smoothed_rectified)
+    return (averaged, smoothed_envelope, smoothed_rectified)
 
 
 def beta_bursts(envelope: np.ndarray,
@@ -473,7 +478,7 @@ def dsp_biomarker(data: np.ndarray) -> np.ndarray:
     beta_power = np.convolve(full_beta_history ** 2, power_window, 'same')
     total_power = np.convolve(full_total_history ** 2, power_window, 'same')
     biomarker = 1000 * beta_power / total_power
-    return biomarker
+    return biomarker, beta_power, total_power
 
 
 def subtract_template(data, template, blank=False, interpolate=True):

@@ -465,12 +465,12 @@ def plot_biomarker_steps(data: np.ndarray, fs: int,
     ax[0].set_title('Raw data')
     ax[1].plot(ttd, beta)
     ax[1].set_title('Beta (13-30 Hz) component')
-    ax[2].plot(ttd[p_cut:-p_cut], beta_power[p_cut:-p_cut])
-    ax[2].plot(ttd[p_cut:-p_cut], total_power[p_cut:-p_cut])
-    ax[2].legend(['beta', 'total'])
-    ax[2].set_title('Beta and total power (N = %d samples)' % p_seg_len)
-    ax[3].plot(ttd[p_cut:-p_cut], biomarker[p_cut:-p_cut])
-    ax[3].set_title('Biomarker (relative beta)')
+    ax[3].plot(ttd[p_cut:-p_cut], beta_power[p_cut:-p_cut])
+    ax[3].plot(ttd[p_cut:-p_cut], total_power[p_cut:-p_cut])
+    ax[3].legend(['beta', 'total'])
+    ax[3].set_title('Beta and total power (N = %d samples)' % p_seg_len)
+    ax[2].plot(ttd[p_cut:-p_cut], biomarker[p_cut:-p_cut])
+    ax[2].set_title('Biomarker (relative beta)')
     if plot_title is not None:
         plt.suptitle(plot_title)
 
@@ -670,9 +670,15 @@ def plot_beta_bursts_one_rat(rat_bursts, rat_type, filename=None):
             #     max_amplitude = max(amplitude)
             # if len(duration) > 0 and max(duration) > max_duration:
             #     max_duration = max(duration)
-            axs[plot_i].set_xlabel('Duration')
+            axs[plot_i].set_xlabel('Duration [s]')
             axs[plot_i].set_ylabel('Amplitude')
-    fig.suptitle(f'{rat} ({rat_type}): threshold @ {perc}th percentile')
+    if 'bounds' in rat_bursts:
+        bounds = rat_bursts['bounds']
+        fig.suptitle(f'{rat} ({rat_type}), {bounds[0]}-{bounds[1]} Hz: '
+                     f'threshold @ {perc}th percentile')
+    else:
+        fig.suptitle(f'{rat} ({rat_type}), 16 Hz: '
+                     f'threshold @ {perc}th percentile')
     for ax_place in order.values():
         axs[ax_place].set_xlim([-0.1 * max_duration, max_duration * 1.1])
         axs[ax_place].set_ylim([-0.1 * max_amplitude, max_amplitude * 1.1])
