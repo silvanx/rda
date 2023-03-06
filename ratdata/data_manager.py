@@ -62,6 +62,8 @@ class RecordingPower(Model):
     total_power = FloatField()
     oof_exponent = FloatField()
     oof_constant = FloatField()
+    low_beta = FloatField()
+    high_beta = FloatField()
 
     class Meta:
         database = database_proxy
@@ -339,9 +341,15 @@ def get_recording_slice(filename: str) -> tuple[float, float]:
         return None
 
 
-def upsert_power_record(f: ingest.Recording, recording_beta_power: float,
-                        recording_total_power: float,
-                        oof_m: float, oof_b: float) -> int:
+def upsert_power_record(
+        f: ingest.Recording,
+        recording_beta_power: float,
+        recording_total_power: float,
+        oof_m: float,
+        oof_b: float,
+        low_beta_power: float,
+        high_beta_power: float
+        ) -> int:
     q = RecordingPower.select().join(RecordingFile)\
         .where(RecordingFile.filename == f.filename)
     if q.count() == 0:
@@ -350,7 +358,9 @@ def upsert_power_record(f: ingest.Recording, recording_beta_power: float,
                                    beta_power=recording_beta_power,
                                    total_power=recording_total_power,
                                    oof_exponent=oof_m,
-                                   oof_constant=oof_b)
+                                   oof_constant=oof_b,
+                                   low_beta=low_beta_power,
+                                   high_beta=high_beta_power)
         rp_id = rp.execute()
         RecordingSlice.update(updated=False)\
             .where(RecordingSlice.recording == rec).execute()
@@ -359,7 +369,9 @@ def upsert_power_record(f: ingest.Recording, recording_beta_power: float,
         rp_id = RecordingPower.update(beta_power=recording_beta_power,
                                       total_power=recording_total_power,
                                       oof_exponent=oof_m,
-                                      oof_constant=oof_b)\
+                                      oof_constant=oof_b,
+                                      low_beta=low_beta_power,
+                                      high_beta=high_beta_power)\
                               .where(RecordingPower.recording == rec)\
                               .execute()
         RecordingSlice.update(updated=False)\
