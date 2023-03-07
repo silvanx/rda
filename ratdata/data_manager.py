@@ -64,6 +64,7 @@ class RecordingPower(Model):
     oof_constant = FloatField()
     low_beta = FloatField()
     high_beta = FloatField()
+    alpha = FloatField()
 
     class Meta:
         database = database_proxy
@@ -348,7 +349,8 @@ def upsert_power_record(
         oof_m: float,
         oof_b: float,
         low_beta_power: float,
-        high_beta_power: float
+        high_beta_power: float,
+        alpha_power: float
         ) -> int:
     q = RecordingPower.select().join(RecordingFile)\
         .where(RecordingFile.filename == f.filename)
@@ -360,7 +362,8 @@ def upsert_power_record(
                                    oof_exponent=oof_m,
                                    oof_constant=oof_b,
                                    low_beta=low_beta_power,
-                                   high_beta=high_beta_power)
+                                   high_beta=high_beta_power,
+                                   alpha=alpha_power)
         rp_id = rp.execute()
         RecordingSlice.update(updated=False)\
             .where(RecordingSlice.recording == rec).execute()
@@ -371,7 +374,8 @@ def upsert_power_record(
                                       oof_exponent=oof_m,
                                       oof_constant=oof_b,
                                       low_beta=low_beta_power,
-                                      high_beta=high_beta_power)\
+                                      high_beta=high_beta_power,
+                                      alpha=alpha_power)\
                               .where(RecordingPower.recording == rec)\
                               .execute()
         RecordingSlice.update(updated=False)\
